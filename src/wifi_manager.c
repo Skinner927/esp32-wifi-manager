@@ -292,16 +292,22 @@ void wifi_manager_clear_ip_info_json(){
 void wifi_manager_generate_ip_info_json(update_reason_code_t update_reason_code){
 
 	wifi_config_t *config = wifi_manager_get_wifi_sta_config();
-	if(config){
-
-		const char ip_info_json_format[] = ",\"ip\":\"%s\",\"netmask\":\"%s\",\"gw\":\"%s\",\"urc\":%d}\n";
+	if(!config){
+		wifi_manager_clear_ip_info_json();
+		return;
+	}
+	for(int i = 0; i < 2; i++){
+		const char *ip_info_json_format = ",\"ip\":\"%s\",\"netmask\":\"%s\",\"gw\":\"%s\",\"urc\":%d}\n";
 
 		memset(ip_info_json, 0x00, JSON_IP_INFO_SIZE);
 
 		/* to avoid declaring a new buffer we copy the data directly into the buffer at its correct address */
 		strcpy(ip_info_json, "{\"ssid\":");
-		json_print_string(config->sta.ssid,  (unsigned char*)(ip_info_json+strlen(ip_info_json)) );
+		json_print_string(config->sta.ssid,  (unsigned char*)(ip_info_json + strlen(ip_info_json)) );
 
+		size_t ip_info_json_len = strlen(ip_info_json);
+		size_t remaining = JSON_IP_INFO_SIZE - ip_info_json_len;
+		int required_size = 0;
 		if(update_reason_code == UPDATE_CONNECTION_OK){
 			/* rest of the information is copied after the ssid */
 			tcpip_adapter_ip_info_t ip_info;
@@ -313,26 +319,44 @@ void wifi_manager_generate_ip_info_json(update_reason_code_t update_reason_code)
 			strcpy(netmask, ip4addr_ntoa(&ip_info.netmask));
 			strcpy(gw, ip4addr_ntoa(&ip_info.gw));
 
-			snprintf( (ip_info_json + strlen(ip_info_json)), JSON_IP_INFO_SIZE, ip_info_json_format,
-					ip,
-					netmask,
-					gw,
-					(int)update_reason_code);
+			required_size = snprintf(
+				(ip_info_json + ip_info_json_len),
+				remaining,
+				ip_info_json_format,
+				ip,
+				netmask,
+				gw,
+				(int)update_reason_code
+			);
 		}
 		else{
 			/* notify in the json output the reason code why this was updated without a connection */
-			snprintf( (ip_info_json + strlen(ip_info_json)), JSON_IP_INFO_SIZE, ip_info_json_format,
-								"0",
-								"0",
-								"0",
-								(int)update_reason_code);
+			required_size = snprintf(
+				(ip_info_json + ip_info_json_len),
+				remaining,
+				ip_info_json_format,
+				"0",
+				"0",
+				"0",
+				(int)update_reason_code
+			);
 		}
-	}
-	else{
-		wifi_manager_clear_ip_info_json();
-	}
 
-
+		if(required_size >= remaining){
+			// = This is a lot of code for something that should never happen =
+			// Couldn't write all of the string to the buffer. This means the
+			// ip_info_json is corrupt so we have to wipe it, but let's also
+			// enlarge the buffer so it won't be an issue next time.
+			ESP_LOGE(TAG, "ip_info_json not large enough for json. Need %i bytes total.",
+				required_size + ip_info_json_len);
+			char *tmp = realloc(ip_info_json, required_size + ip_info_json_len);
+			if (tmp) ip_info_json = tmp;
+			continue;
+		}
+		return;
+	} // end for
+	// Didn't return, still having trouble with ip_info_json I guess
+	wifi_manager_clear_ip_info_json();
 }
 
 
