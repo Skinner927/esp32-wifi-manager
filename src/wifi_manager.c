@@ -54,8 +54,6 @@ Contains the freeRTOS task and all necessary support
 #include "wifi_manager.h"
 #include "dns_server.h"
 
-
-
 /* objects used to manipulate the main queue of events */
 QueueHandle_t wifi_manager_queue;
 
@@ -122,7 +120,52 @@ const int WIFI_MANAGER_SCAN_BIT = BIT7;
 /* @brief When set, means user requested for a disconnect */
 const int WIFI_MANAGER_REQUEST_DISCONNECT_BIT = BIT8;
 
+custom_setting_t* custom_settings = NULL;
 
+custom_setting_t* get_custom_settings() {
+	return custom_settings;
+}
+
+bool add_custom_setting(
+	const char* key,
+	const char* type,
+	const char* label,
+	const char* init_value,
+	size_t value_len,
+	const char* options) {
+		custom_setting_t* setting = NULL;
+
+		if (!key || strlen(key) == 0 || !type || strlen(type) == 0
+			|| value_len < 1) goto err;
+
+		setting = malloc(sizeof(custom_setting_t));
+		if (!setting) goto err;
+
+		// Move over value
+		setting->value = calloc(value_len, 1);
+		if (!setting->value) goto err;
+		if (init_value != NULL
+			&& strlcpy(setting->value, init_value, value_len) >= value_len) goto err;
+
+		// Point to the constant values
+		setting->key = key;
+		setting->type = type;
+		setting->label = label;
+		setting->value_len = value_len;
+		setting->options = options;
+
+		// Add to list
+		setting->next = custom_settings;
+		custom_settings = setting;
+
+		return true;
+err:
+		if (setting) {
+			if (setting->value) free(setting->value);
+			free(setting);
+		}
+		return false;
+}
 
 
 void wifi_manager_scan_async(){
@@ -173,7 +216,7 @@ void wifi_manager_start(){
 	wifi_manager_queue = xQueueCreate( 3, sizeof( queue_message) );
 	wifi_manager_json_mutex = xSemaphoreCreateMutex();
 	accessp_records = (wifi_ap_record_t*)malloc(sizeof(wifi_ap_record_t) * MAX_AP_NUM);
-	accessp_json = (char*)malloc(MAX_AP_NUM * JSON_ONE_APP_SIZE + 4); /* 4 bytes for json encapsulation of "[\n" and "]\0" */
+	accessp_json = (char*)malloc(ACCESSP_JSON_SIZE);
 	wifi_manager_clear_access_points_json();
 	ip_info_json = (char*)malloc(sizeof(char) * JSON_IP_INFO_SIZE);
 	wifi_manager_clear_ip_info_json();
@@ -328,7 +371,9 @@ void wifi_manager_generate_ip_info_json(update_reason_code_t update_reason_code)
 
 		/* to avoid declaring a new buffer we copy the data directly into the buffer at its correct address */
 		strcpy(ip_info_json, "{\"ssid\":");
-		json_print_string(config->sta.ssid,  (unsigned char*)(ip_info_json+strlen(ip_info_json)) );
+		json_print_string(config->sta.ssid,
+			(unsigned char*)(ip_info_json+strlen(ip_info_json)),
+			JSON_IP_INFO_SIZE - strlen(ip_info_json));
 
 		size_t ip_info_json_len = strlen(ip_info_json);
 		size_t remaining = JSON_IP_INFO_SIZE - ip_info_json_len;
@@ -384,7 +429,9 @@ void wifi_manager_generate_acess_points_json(){
 
 		/* ssid needs to be json escaped. To save on heap memory it's directly printed at the correct address */
 		strcat(accessp_json, "{\"ssid\":");
-		json_print_string( (unsigned char*)ap.ssid,  (unsigned char*)(accessp_json+strlen(accessp_json)) );
+		json_print_string( (unsigned char*)ap.ssid,
+			(unsigned char*)(accessp_json+strlen(accessp_json)),
+			ACCESSP_JSON_SIZE - strlen(accessp_json));
 
 		/* print the rest of the json for this access point: no more string to escape */
 		snprintf(one_ap, (size_t)JSON_ONE_APP_SIZE, oneap_str,
@@ -807,7 +854,7 @@ void wifi_manager( void * pvParameters ){
 				uxBits = xEventGroupGetBits(wifi_manager_event_group);
 				if(! (uxBits & WIFI_MANAGER_SCAN_BIT) ){
 					xEventGroupSetBits(wifi_manager_event_group, WIFI_MANAGER_SCAN_BIT);
-					ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_config, false));
+					ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_scan_start(&scan_config, false));
 				}
 
 				/* callback */

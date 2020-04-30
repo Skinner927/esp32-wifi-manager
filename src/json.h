@@ -38,7 +38,7 @@ extern "C" {
  * @param output_buffer the output buffer to write to. You must ensure it is big enough to contain the final string.
  * @see cJSON equivlaent static cJSON_bool print_string_ptr(const unsigned char * const input, printbuffer * const output_buffer)
  */
-bool json_print_string(const unsigned char *input, unsigned char *output_buffer);
+bool json_print_string(const unsigned char *input, unsigned char *output_buffer, size_t output_buffer_size);
 
 #ifdef __cplusplus
 }

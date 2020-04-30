@@ -38,7 +38,12 @@ Contains the freeRTOS task and all necessary support
 extern "C" {
 #endif
 
-
+#ifndef max
+#	define max(a,b) (((a) > (b)) ? (a) : (b))
+#endif
+#ifndef min
+#	define min(a,b) (((a) < (b)) ? (a) : (b))
+#endif
 
 /**
  * @brief Defines the maximum size of a SSID name. 32 is IEEE standard.
@@ -172,6 +177,9 @@ extern "C" {
  */
 #define JSON_IP_INFO_SIZE 					159
 
+/* 4 bytes for json encapsulation of "[\n" and "]\0" */
+#define ACCESSP_JSON_SIZE   MAX_AP_NUM * JSON_ONE_APP_SIZE + 4
+
 
 
 /**
@@ -250,7 +258,61 @@ typedef struct{
 	void *param;
 } queue_message;
 
+typedef struct custom_setting {
+	const char* key;
+	const char* type;
+	const char* label;
+	// Stored value
+	char* value;
+	size_t value_len;
+	const char* options;
+	// Largest length of all buffers/strings
+	size_t static_max;
+	// Points to next setting (linked-list). Initialize to NULL.
+	struct custom_setting* next;
+} custom_setting_t;
 
+/**
+ * @brief Use this function to easily add a custom setting
+ * @param key Key to identify the setting (HTML name attribute).
+ * @param label Label to show next to input, may be NULL.
+ * @param init_value Initial value. May be NULL.
+ * @param value_len Max allowed length of value including null terminator.
+ * @param options Optional options depending on type. May be NULL.
+ * @param type Type value
+ * 	text:
+ * 	textbox:
+ * 	email:
+ * 	number:
+ * 	password:
+ * 	search:
+ * 	etc...:
+ * 		Standard input text box. Options is ignored set to NULL.
+ * 	checkbox:
+ * 		Set options to what value should equal when ticked.
+ * 	radio:
+ * 		Set options to string "Value1\tLabel1\nValue2\tLabel2..."
+ * 	select:
+ * 		Set options to string "Value1\tLabel1\nValue2\tLabel2..."
+ *
+ * All char* params should be declared in ROM or on the heap as they
+ * are not copied. The only param that is copied is init_value.
+ *
+ * Settings cannot be added or removed once the first call to
+ * wifi_manager_start() is called;
+ */
+bool add_custom_setting(
+	const char* key,
+	const char* type,
+	const char* label, /* may be NULL */
+	const char* init_value, /* may be NULL */
+	size_t value_len,
+	const char* options /* may be NULL */);
+
+/**
+ * Gets the first element from the settings linked-list
+ */
+custom_setting_t* get_custom_settings();
 
 /**
  * Allocate heap memory for the wifi manager and start the wifi_manager RTOS task

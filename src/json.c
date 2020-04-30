@@ -32,7 +32,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "json.h"
 
 
-bool json_print_string(const unsigned char *input, unsigned char *output_buffer)
+bool json_print_string(const unsigned char *input, unsigned char *output_buffer, size_t output_buffer_size)
 {
 	const unsigned char *input_pointer = NULL;
 	unsigned char *output = NULL;
@@ -50,7 +50,7 @@ bool json_print_string(const unsigned char *input, unsigned char *output_buffer)
 	if (input == NULL)
 	{
 		//output = ensure(output_buffer, sizeof("\"\""), hooks);
-		if (output == NULL)
+		if (output == NULL || output_buffer_size < 3)
 		{
 			return false;
 		}
@@ -74,6 +74,10 @@ bool json_print_string(const unsigned char *input, unsigned char *output_buffer)
 		}
 	}
 	output_length = (size_t)(input_pointer - input) + escape_characters;
+
+	if (output_length >= output_buffer_size) {
+		return false;
+	}
 
 	/* in the original cJSON it is possible to realloc here in case output buffer is too small.
 	 * This is overkill for an embedded system. */

@@ -53,10 +53,18 @@ void monitoring_task(void *pvParameter)
 /* brief this is an exemple of a callback that you can setup in your own app to get notified of wifi manager event */
 void cb_connection_ok(void *pvParameter){
 	ESP_LOGI(TAG, "I have a connection!");
+	//wifi_manager_disconnect_and_delete_config_async();
 }
 
 void app_main()
 {
+	// Add custom settings to be configured
+	add_custom_setting("token", "text", "Enter your secret token", NULL, 33, NULL);
+	add_custom_setting("service", "select", "Select a service", NULL, 5,
+		"svc1\tService #1\nsvc2\tService #2\nsvc3\tService #3");
+	add_custom_setting("color", "radio", "Color", "green", 6,
+		"red\tRed\ngreen\tGreen\nblue\tBlue");
+
 	/* start the wifi manager */
 	wifi_manager_start();
 

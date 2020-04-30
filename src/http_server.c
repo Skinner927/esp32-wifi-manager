@@ -56,6 +56,7 @@ function to process requests, decode URLs, serve files, etc. etc.
 
 #include "http_server.h"
 #include "wifi_manager.h"
+#include "json.h"
 
 
 /* @brief tag used for ESP serial console messages */
@@ -63,6 +64,12 @@ static const char TAG[] = "http_server";
 
 /* @brief task handle for the http server */
 static TaskHandle_t task_http_server = NULL;
+
+// Scratch space for settings JSON
+// Initialized on first server start in relation to largest
+// get_custom_settings()
+static unsigned char* json_scratch = NULL;
+static size_t json_scratch_size = 0;
 
 
 /**
@@ -101,6 +108,30 @@ void http_server_start(){
 }
 
 void http_server(void *pvParameters) {
+	if (json_scratch == NULL) {
+		// Figure out the largest string length then double it.
+		// We'll use this as a worse case size for a string buffer to
+		// send values. It's technically possible we could exceed this
+		// value if the result is all backslashes.
+		// TODO: Maybe a JS validator that hammers the length?
+		custom_setting_t* current = get_custom_settings();
+		size_t max_size = 1;
+		while (current) {
+			max_size = max(max_size,
+				max(strlen(current->key),
+					max(strlen(current->type),
+						max(current->label ? strlen(current->label) : 0,
+							max(current->value_len,
+								current->options ? strlen(current->options) : 0)))));
+			current = current->next;
+		}
+		json_scratch_size = (max_size * 2) + 2;
+		json_scratch = malloc(json_scratch_size);
+		if (!json_scratch) {
+			ESP_LOGE(TAG, "Cannot allocate enough memory for json_scratch %d", json_scratch_size);
+			return;
+		}
+	}
 
 	struct netconn *conn, *newconn;
 	err_t err;
@@ -261,6 +292,53 @@ void http_server_netconn_serve(struct netconn *conn) {
 						netconn_write(conn, http_400_hdr, sizeof(http_400_hdr) - 1, NETCONN_NOCOPY);
 					}
 
+				}
+				else if(strstr(line, "GET /settings.json ")) {
+					ESP_LOGD(TAG, "http_server_netconn_serve: GET /settings.json");
+
+					netconn_write(conn, "[", 1, NETCONN_NOCOPY);
+					custom_setting_t* current = get_custom_settings();
+					while (current) {
+						netconn_write(conn, "{\"key\":", strlen("{\"key\":"), NETCONN_NOCOPY);
+						json_print_string((unsigned char*)current->key, json_scratch, json_scratch_size);
+						netconn_write(conn, json_scratch, strlen((char*)json_scratch), NETCONN_COPY);
+
+						netconn_write(conn, ",\"type\":", strlen(",\"type\":"), NETCONN_NOCOPY);
+						json_print_string((unsigned char*)current->type, json_scratch, json_scratch_size);
+						netconn_write(conn, json_scratch, strlen((char*)json_scratch), NETCONN_COPY);
+
+						netconn_write(conn, ",\"label\":", strlen(",\"label\":"), NETCONN_NOCOPY);
+						if (current->label) {
+							json_print_string((unsigned char*)current->label, json_scratch, json_scratch_size);
+							netconn_write(conn, json_scratch, strlen((char*)json_scratch), NETCONN_COPY);
+						} else {
+							netconn_write(conn, "null", strlen("null"), NETCONN_NOCOPY);
+						}
+
+						netconn_write(conn, ",\"value\":", strlen(",\"value\":"), NETCONN_NOCOPY);
+						if (current->value) {
+							json_print_string((unsigned char*)current->value, json_scratch, json_scratch_size);
+							netconn_write(conn, json_scratch, strlen((char*)json_scratch), NETCONN_COPY);
+						} else {
+							netconn_write(conn, "null", strlen("null"), NETCONN_NOCOPY);
+						}
+
+						netconn_write(conn, ",\"options\":", strlen(",\"options\":"), NETCONN_NOCOPY);
+						if (current->options) {
+							json_print_string((unsigned char*)current->options, json_scratch, json_scratch_size);
+							netconn_write(conn, json_scratch, strlen((char*)json_scratch), NETCONN_COPY);
+						} else {
+							netconn_write(conn, "null", strlen("null"), NETCONN_NOCOPY);
+						}
+
+						current = current->next;
+						if (current) {
+							netconn_write(conn, "},", 2, NETCONN_NOCOPY);
+						} else {
+							netconn_write(conn, "}", 1, NETCONN_NOCOPY);
+						}
+					}
+					netconn_write(conn, "]", 1, NETCONN_NOCOPY);
 				}
 				else{
 					netconn_write(conn, http_400_hdr, sizeof(http_400_hdr) - 1, NETCONN_NOCOPY);
