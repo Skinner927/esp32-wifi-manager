@@ -99,6 +99,9 @@ const static char http_ok_json_no_cache_hdr[] = "HTTP/1.1 200 OK\nContent-type: 
 const static char http_redirect_hdr_start[] = "HTTP/1.1 302 Found\nLocation: http://";
 const static char http_redirect_hdr_end[] = "/\n\n";
 
+/* consts for crafting JSON */
+const static char json_null[] = "null";
+
 
 
 void http_server_start(){
@@ -121,7 +124,7 @@ void http_server(void *pvParameters) {
 				max(strlen(current->key),
 					max(strlen(current->type),
 						max(current->label ? strlen(current->label) : 0,
-							max(current->value_len,
+							max(current->value_size,
 								current->options ? strlen(current->options) : 0)))));
 			current = current->next;
 		}
@@ -295,40 +298,47 @@ void http_server_netconn_serve(struct netconn *conn) {
 				}
 				else if(strstr(line, "GET /settings.json ")) {
 					ESP_LOGD(TAG, "http_server_netconn_serve: GET /settings.json");
+					size_t current_json_scratch_len = 0;
 
+					netconn_write(conn, http_ok_json_no_cache_hdr, sizeof(http_ok_json_no_cache_hdr) - 1, NETCONN_NOCOPY);
 					netconn_write(conn, "[", 1, NETCONN_NOCOPY);
 					custom_setting_t* current = get_custom_settings();
 					while (current) {
-						netconn_write(conn, "{\"key\":", strlen("{\"key\":"), NETCONN_NOCOPY);
+						netconn_write(conn, "{\"key\":", sizeof("{\"key\":") - 1, NETCONN_NOCOPY);
 						json_print_string((unsigned char*)current->key, json_scratch, json_scratch_size);
-						netconn_write(conn, json_scratch, strlen((char*)json_scratch), NETCONN_COPY);
+						current_json_scratch_len = strlen((char*)json_scratch);
+						netconn_write(conn, json_scratch, min(json_scratch_size, current_json_scratch_len), NETCONN_COPY);
 
-						netconn_write(conn, ",\"type\":", strlen(",\"type\":"), NETCONN_NOCOPY);
+						netconn_write(conn, ",\"type\":", sizeof(",\"type\":") - 1, NETCONN_NOCOPY);
 						json_print_string((unsigned char*)current->type, json_scratch, json_scratch_size);
-						netconn_write(conn, json_scratch, strlen((char*)json_scratch), NETCONN_COPY);
+						current_json_scratch_len = strlen((char*)json_scratch);
+						netconn_write(conn, json_scratch, min(json_scratch_size, current_json_scratch_len), NETCONN_COPY);
 
-						netconn_write(conn, ",\"label\":", strlen(",\"label\":"), NETCONN_NOCOPY);
-						if (current->label) {
+						netconn_write(conn, ",\"label\":", sizeof(",\"label\":") - 1, NETCONN_NOCOPY);
+						if (current->label && strlen(current->label) > 0) {
 							json_print_string((unsigned char*)current->label, json_scratch, json_scratch_size);
-							netconn_write(conn, json_scratch, strlen((char*)json_scratch), NETCONN_COPY);
+							current_json_scratch_len = strlen((char*)json_scratch);
+							netconn_write(conn, json_scratch, min(json_scratch_size, current_json_scratch_len), NETCONN_COPY);
 						} else {
-							netconn_write(conn, "null", strlen("null"), NETCONN_NOCOPY);
+							netconn_write(conn, json_null, sizeof(json_null) - 1, NETCONN_NOCOPY);
 						}
 
-						netconn_write(conn, ",\"value\":", strlen(",\"value\":"), NETCONN_NOCOPY);
-						if (current->value) {
+						netconn_write(conn, ",\"value\":", sizeof(",\"value\":") - 1, NETCONN_NOCOPY);
+						if (current->value && strlen(current->value) > 0) {
 							json_print_string((unsigned char*)current->value, json_scratch, json_scratch_size);
-							netconn_write(conn, json_scratch, strlen((char*)json_scratch), NETCONN_COPY);
+							current_json_scratch_len = strlen((char*)json_scratch);
+							netconn_write(conn, json_scratch, min(json_scratch_size, current_json_scratch_len), NETCONN_COPY);
 						} else {
-							netconn_write(conn, "null", strlen("null"), NETCONN_NOCOPY);
+							netconn_write(conn, json_null, sizeof(json_null) - 1, NETCONN_NOCOPY);
 						}
 
-						netconn_write(conn, ",\"options\":", strlen(",\"options\":"), NETCONN_NOCOPY);
-						if (current->options) {
+						netconn_write(conn, ",\"options\":", sizeof(",\"options\":") - 1, NETCONN_NOCOPY);
+						if (current->options && strlen(current->options) > 0) {
 							json_print_string((unsigned char*)current->options, json_scratch, json_scratch_size);
-							netconn_write(conn, json_scratch, strlen((char*)json_scratch), NETCONN_COPY);
+							current_json_scratch_len = strlen((char*)json_scratch);
+							netconn_write(conn, json_scratch, min(json_scratch_size, current_json_scratch_len), NETCONN_COPY);
 						} else {
-							netconn_write(conn, "null", strlen("null"), NETCONN_NOCOPY);
+							netconn_write(conn, json_null, sizeof(json_null) - 1, NETCONN_NOCOPY);
 						}
 
 						current = current->next;

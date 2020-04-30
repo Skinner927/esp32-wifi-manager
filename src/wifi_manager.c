@@ -57,7 +57,7 @@ Contains the freeRTOS task and all necessary support
 /* objects used to manipulate the main queue of events */
 QueueHandle_t wifi_manager_queue;
 
-
+static bool wifi_manager_has_ever_started = false;
 SemaphoreHandle_t wifi_manager_json_mutex = NULL;
 SemaphoreHandle_t wifi_manager_sta_ip_mutex = NULL;
 char *wifi_manager_sta_ip = NULL;
@@ -120,7 +120,7 @@ const int WIFI_MANAGER_SCAN_BIT = BIT7;
 /* @brief When set, means user requested for a disconnect */
 const int WIFI_MANAGER_REQUEST_DISCONNECT_BIT = BIT8;
 
-custom_setting_t* custom_settings = NULL;
+static custom_setting_t* custom_settings = NULL;
 
 custom_setting_t* get_custom_settings() {
 	return custom_settings;
@@ -131,28 +131,47 @@ bool add_custom_setting(
 	const char* type,
 	const char* label,
 	const char* init_value,
-	size_t value_len,
-	const char* options) {
+	size_t value_size,
+	const char* options,
+	void (*callback)(const custom_setting_t*)) {
 		custom_setting_t* setting = NULL;
 
+		if (wifi_manager_has_ever_started) {
+			ESP_LOGE(TAG, "Manager has started, you cannot add settings");
+			goto err;
+		}
+
 		if (!key || strlen(key) == 0 || !type || strlen(type) == 0
-			|| value_len < 1) goto err;
+				|| value_size < 1) {
+			ESP_LOGE(TAG, "Invalid key, type, or value_size in add_custom_setting");
+			goto err;
+		}
 
 		setting = malloc(sizeof(custom_setting_t));
-		if (!setting) goto err;
+		if (!setting) {
+			ESP_LOGE(TAG, "Cannot malloc setting in add_custom_setting");
+			goto err;
+		}
 
 		// Move over value
-		setting->value = calloc(value_len, 1);
-		if (!setting->value) goto err;
+		setting->value = calloc(value_size, 1);
+		if (!setting->value) {
+			ESP_LOGE(TAG, "Cannot malloc value in add_custom_setting");
+			goto err;
+		}
 		if (init_value != NULL
-			&& strlcpy(setting->value, init_value, value_len) >= value_len) goto err;
+				&& strlcpy(setting->value, init_value, value_size) >= value_size) {
+			ESP_LOGE(TAG, "Cannot copy value in add_custom_setting");
+			goto err;
+		}
 
 		// Point to the constant values
 		setting->key = key;
 		setting->type = type;
 		setting->label = label;
-		setting->value_len = value_len;
+		setting->value_size = value_size;
 		setting->options = options;
+		setting->callback = callback;
 
 		// Add to list
 		setting->next = custom_settings;
@@ -165,6 +184,23 @@ err:
 			free(setting);
 		}
 		return false;
+}
+
+const char* get_custom_setting_value(const char* key) {
+	const custom_setting_t* setting = get_custom_setting_by_key(key);
+	if (!setting) return NULL;
+	return setting->value;
+}
+
+const custom_setting_t* get_custom_setting_by_key(const char* key) {
+	custom_setting_t* current = custom_settings;
+	while(current) {
+		if (current->key && strstr(current->key, key))
+			return current;
+		current = current->next;
+	}
+	// Did not find it
+	return NULL;
 }
 
 
@@ -205,6 +241,7 @@ void wifi_manager_disconnect_and_delete_config_async(){
 
 
 void wifi_manager_start(){
+	wifi_manager_has_ever_started = true;
 
 	/* disable the default wifi logging */
 	esp_log_level_set("wifi", ESP_LOG_NONE);

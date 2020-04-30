@@ -1,5 +1,5 @@
 body {
-    background-color: #eee;
+    background-color: #808080;
     border: 0;
     margin: 0;
     font: 1.1em tahoma, arial, sans-serif;
@@ -34,7 +34,13 @@ p {
 #credits {
     display: none;
 }
-#app {} #app-wrap {} #disconnect {
+#app {}
+#app-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    background-color: #eee;
+}
+#disconnect {
     width: 150px;
 }
 .diag-box {
@@ -111,6 +117,13 @@ h3 {
 }
 #wifi-status {
     display: none;
+}
+#error-bar {
+    background: #cc0000;
+    border: 1px solid #990000;
+    color: white;
+    /* from .ape */
+    padding: 10px 20px;
 }
 #connect {
     display: none;

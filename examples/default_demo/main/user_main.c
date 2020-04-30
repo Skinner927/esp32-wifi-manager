@@ -56,14 +56,21 @@ void cb_connection_ok(void *pvParameter){
 	//wifi_manager_disconnect_and_delete_config_async();
 }
 
+void cb_setting_update(const custom_setting_t* setting) {
+	ESP_LOGI(TAG, "New setting! %s: %s", setting->key, setting->value);
+}
+
 void app_main()
 {
 	// Add custom settings to be configured
-	add_custom_setting("token", "text", "Enter your secret token", NULL, 33, NULL);
+	add_custom_setting("token", "text", "Enter your secret token", NULL, 33,
+		NULL, &cb_setting_update);
 	add_custom_setting("service", "select", "Select a service", NULL, 5,
-		"svc1\tService #1\nsvc2\tService #2\nsvc3\tService #3");
+		"svc1\tService #1\nsvc2\tService #2\nsvc3\tService #3",
+		&cb_setting_update);
 	add_custom_setting("color", "radio", "Color", "green", 6,
-		"red\tRed\ngreen\tGreen\nblue\tBlue");
+		"red\tRed\ngreen\tGreen\nblue\tBlue",
+		&cb_setting_update);
 
 	/* start the wifi manager */
 	wifi_manager_start();

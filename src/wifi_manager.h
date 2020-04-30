@@ -264,10 +264,12 @@ typedef struct custom_setting {
 	const char* label;
 	// Stored value
 	char* value;
-	size_t value_len;
+	size_t value_size;
 	const char* options;
 	// Largest length of all buffers/strings
 	size_t static_max;
+	// Function to call when value is updated
+	void (*callback)(const struct custom_setting*);
 	// Points to next setting (linked-list). Initialize to NULL.
 	struct custom_setting* next;
 } custom_setting_t;
@@ -277,8 +279,11 @@ typedef struct custom_setting {
  * @param key Key to identify the setting (HTML name attribute).
  * @param label Label to show next to input, may be NULL.
  * @param init_value Initial value. May be NULL.
- * @param value_len Max allowed length of value including null terminator.
+ * @param value_size Max allowed length of value including null terminator.
+ * 	A buffer will be allocated of this size for values to be stored on.
  * @param options Optional options depending on type. May be NULL.
+ * @param callback Optional function to call when value is updated.
+ * 	May be NULL.
  * @param type Type value
  * 	text:
  * 	textbox:
@@ -306,13 +311,29 @@ bool add_custom_setting(
 	const char* type,
 	const char* label, /* may be NULL */
 	const char* init_value, /* may be NULL */
-	size_t value_len,
-	const char* options /* may be NULL */);
+	size_t value_size,
+	const char* options, /* may be NULL */
+	void (*callback)(const custom_setting_t*));
 
 /**
  * Gets the first element from the settings linked-list
  */
 custom_setting_t* get_custom_settings();
+
+/**
+ * @brief Retrieve the value of a custom setting.
+ * @param key Key name of setting used when registering.
+ * @returns Pointer to value. Do not free this. May be NULL if
+ * 	key does not exist.
+ */
+const char* get_custom_setting_value(const char* key);
+
+/**
+ * @brief Retrieve the whole custom_setting_t given by key.
+ * @param Key Key name of the setting use when registering.
+ * @returns Pointer to custom setting if one exists otherwise NULL.
+ */
+const custom_setting_t* get_custom_setting_by_key(const char* key);
 
 /**
  * Allocate heap memory for the wifi manager and start the wifi_manager RTOS task
