@@ -52,6 +52,7 @@ app.get('/settings.json', (req, res) => {
         "type": "radio",
         "label": "Color",
         "value": "green",
+        size: 6,
         "options": "red\tRed\ngreen\tGreen\nblue\tBlue"
       },
       {
@@ -59,6 +60,7 @@ app.get('/settings.json', (req, res) => {
         "type": "select",
         "label": "Select a service",
         "value": "",
+        size: 5,
         "options": "svc1\tService #1\nsvc2\tService #2\nsvc3\tService #3"
       },
       {
@@ -66,7 +68,24 @@ app.get('/settings.json', (req, res) => {
         "type": "text",
         "label": "Enter your secret token",
         "value": "",
+        size: 33,
         "options": null
+      },
+      {
+        key: 'toppings',
+        type: 'checkbox',
+        label: 'Toppings',
+        value: null,
+        size: 22,
+        options: "tomato\tTomato\ncheese\tCheese\npep\tPepperoni"
+      },
+      {
+        key: 'sshkey',
+        type: 'textarea',
+        label: 'Public Key',
+        value: null,
+        size: 55,
+        options: null,
       }
     ]
   );

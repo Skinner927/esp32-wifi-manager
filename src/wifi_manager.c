@@ -136,6 +136,10 @@ bool add_custom_setting(
 	void (*callback)(const custom_setting_t*)) {
 		custom_setting_t* setting = NULL;
 
+		if (strlen(key) > SETTING_KEY_LEN) {
+			ESP_LOGE(TAG, "Key too long in add_custom_setting");
+			goto err;
+		}
 		if (wifi_manager_has_ever_started) {
 			ESP_LOGE(TAG, "Manager has started, you cannot add settings");
 			goto err;

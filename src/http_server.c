@@ -101,6 +101,7 @@ const static char http_redirect_hdr_end[] = "/\n\n";
 
 /* consts for crafting JSON */
 const static char json_null[] = "null";
+const static char setting_hdr_prefix[] = "X-CONF-";
 
 
 
@@ -296,7 +297,7 @@ void http_server_netconn_serve(struct netconn *conn) {
 					}
 
 				}
-				else if(strstr(line, "GET /settings.json ")) {
+				else if(strstr(line, "GET /settings.json?")) {
 					ESP_LOGD(TAG, "http_server_netconn_serve: GET /settings.json");
 					size_t current_json_scratch_len = 0;
 
@@ -312,6 +313,10 @@ void http_server_netconn_serve(struct netconn *conn) {
 						netconn_write(conn, ",\"type\":", sizeof(",\"type\":") - 1, NETCONN_NOCOPY);
 						json_print_string((unsigned char*)current->type, json_scratch, json_scratch_size);
 						current_json_scratch_len = strlen((char*)json_scratch);
+						netconn_write(conn, json_scratch, min(json_scratch_size, current_json_scratch_len), NETCONN_COPY);
+
+						netconn_write(conn, ",\"size\":", sizeof(",\"size\":") - 1, NETCONN_NOCOPY);
+						current_json_scratch_len = snprintf((char*)json_scratch, json_scratch_size, "%u", current->value_size);
 						netconn_write(conn, json_scratch, min(json_scratch_size, current_json_scratch_len), NETCONN_COPY);
 
 						netconn_write(conn, ",\"label\":", sizeof(",\"label\":") - 1, NETCONN_NOCOPY);
@@ -349,6 +354,56 @@ void http_server_netconn_serve(struct netconn *conn) {
 						}
 					}
 					netconn_write(conn, "]", 1, NETCONN_NOCOPY);
+				}
+				else if(strstr(line, "POST /settings.json?")) {
+					char* here = save_ptr;
+					char* next = here;
+					char key[SETTING_KEY_LEN + 1] = {'\0'};
+					size_t tmp_len = 0;
+					const custom_setting_t* setting = NULL;
+					bool had_changes = false;
+					for(;;) {
+						// Get the next setting's key
+						next = strstr(here, setting_hdr_prefix);
+						if (!next) break;
+						here = next + sizeof(setting_hdr_prefix) - 1;
+						next = strstr(here, ":");
+						if (!next) break;
+						tmp_len = next - here;
+						if ((!next) || (tmp_len > SETTING_KEY_LEN)) goto flushline;
+						strncpy(key, here, tmp_len);
+						key[tmp_len] = '\0';
+						if (strlen(key) != tmp_len) goto flushline; // something is wrong
+						here = next + 1;
+						while (*here == ' ') { here++; } // flush spaces
+						// Pull the setting obj for that key
+						setting = get_custom_setting_by_key(key);
+						if (!setting) goto flushline;
+						// Examine how long the value is
+						next = strstr(here, "\n");
+						if (!next) goto flushline;
+						// max size (less null term) value can be
+						tmp_len = min(setting->value_size - 1, next - here);
+						// Copy it
+						strncpy(setting->value, here, tmp_len);
+						setting->value[tmp_len] = '\0';
+						// Trigger callback
+						if (setting->callback) setting->callback(setting);
+						had_changes = true;
+						here = next;
+						if (*here == '\n') break; // Double newline, we're done
+						continue;
+flushline:
+						next = strstr(here, "\n");
+						if (!next) break;
+						here = next + 1;
+						if (*here == '\n') break; // double newline, we're done
+					}
+
+					if (had_changes) {
+						// TODO: Send event of updated settings
+						;
+					}
 				}
 				else{
 					netconn_write(conn, http_400_hdr, sizeof(http_400_hdr) - 1, NETCONN_NOCOPY);

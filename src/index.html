@@ -12,11 +12,12 @@
 	<body>
 		<div id="app">
 			<div id="app-wrap">
+				<div id="error-bar" style="display: none"></div>
 				<div id="wifi">
 					<header>
 						<h1>Wi-Fi</h1>
+						<button id="settings-btn">Settings</button>
 					</header>
-					<div id="error-bar" style="display: none">This is an error</div>
 					<div id="wifi-status">
 						<h2>Connected to:</h2>
 						<section id="connected-to">
@@ -112,6 +113,14 @@
 						</div>
 					</div>
 				</div>
+				<div id="user-settings">
+					<header><h1>Settings</h1></header>
+					<div id="user-settings-panel"></div>
+					<div class="buttons pair">
+						<input type="button" value="Save" />
+						<input type="button" value="Cancel" />
+					</div>
+				</div> <!-- /user-settings -->
 			</div>
 		</div>
 		<div id="credits">

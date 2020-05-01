@@ -12,7 +12,7 @@ a {
 a:hover {
     color: red;
 }
-input {
+input, select, textarea {
     display: none;
     font: 1.1em tahoma, arial, sans-serif;
 }
@@ -39,6 +39,9 @@ p {
     max-width: 900px;
     margin: 0 auto;
     background-color: #eee;
+}
+#app-wrap > * {
+    display: none;
 }
 #disconnect {
     width: 150px;
@@ -83,11 +86,25 @@ p {
 header {
     background-color: #fff;
     border-bottom: 1px solid #888;
+    position: relative;
+}
+#settings-btn {
+    display: none;
+    position: absolute;
+    top: 50%;
+    right: 20px;
+    border: 2px solid #888;
+    border-radius: 0.75em;
+    transform: translateY(-50%);
+    font-size: 1em;
+    background: #eee;
+    padding: 0.25em 0.5em;
+    cursor: pointer;
 }
 section {
     background-color: #fff;
     border-bottom: 1px solid #888;
-    border-top: 1px solid #888;
+    border-top: 1px solid ;
 }
 h1 {
     display: block;
@@ -96,7 +113,9 @@ h1 {
     padding: 15px;
     font-size: 1.4em
 }
-h2 {
+h2, label.h2 {
+    display: block;
+    font-weight: bold;
     margin: 0;
     margin-top: 20px;
     padding: 10px;
@@ -154,6 +173,9 @@ h3 {
 }
 .buttons {
     padding: 15px;
+}
+.buttons.pair > :nth-child(1) {
+    float: right;
 }
 #join {
     float: right;
@@ -217,6 +239,34 @@ h3 {
     height: 24px;
     margin-right: 30px;
 }
+
+/* #user-settings-panel */
+.user-setting-container {
+    margin-right: 20px;
+    padding-right: 10px;
+}
+.user-setting-container > label {
+    font-weight: bold;
+    margin-right: 20px;
+}
+.user-setting-container input,
+.user-setting-container select,
+.user-setting-container textarea {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+}
+.user-setting-container .user-setting-radio label {
+    display: block;
+}
+.user-setting-container .user-setting-radio input {
+    float: left;
+    width: auto;
+}
+
+
+
+
 /* SpinKit is licensed under the MIT License. Copyright (c) 2015 Tobias Ahlin */
 
 .spinner {

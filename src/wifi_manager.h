@@ -249,6 +249,8 @@ struct wifi_settings_t{
 };
 extern struct wifi_settings_t wifi_settings;
 
+// Does not include null-term
+#define SETTING_KEY_LEN 10
 
 /**
  * @brief Structure used to store one message in the queue.
@@ -262,12 +264,9 @@ typedef struct custom_setting {
 	const char* key;
 	const char* type;
 	const char* label;
-	// Stored value
-	char* value;
-	size_t value_size;
+	char* value; // Stored value
+	size_t value_size; // buffer size including null
 	const char* options;
-	// Largest length of all buffers/strings
-	size_t static_max;
 	// Function to call when value is updated
 	void (*callback)(const struct custom_setting*);
 	// Points to next setting (linked-list). Initialize to NULL.
@@ -286,7 +285,7 @@ typedef struct custom_setting {
  * 	May be NULL.
  * @param type Type value
  * 	text:
- * 	textbox:
+ * 	textarea:
  * 	email:
  * 	number:
  * 	password:
@@ -295,6 +294,7 @@ typedef struct custom_setting {
  * 		Standard input text box. Options is ignored set to NULL.
  * 	checkbox:
  * 		Set options to what value should equal when ticked.
+ * 		Value will be a comma separated list of checked values.
  * 	radio:
  * 		Set options to string "Value1\tLabel1\nValue2\tLabel2..."
  * 	select:
