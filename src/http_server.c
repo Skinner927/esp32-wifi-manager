@@ -85,6 +85,8 @@ extern const uint8_t code_js_start[] asm("_binary_code_js_start");
 extern const uint8_t code_js_end[] asm("_binary_code_js_end");
 extern const uint8_t index_html_start[] asm("_binary_index_html_start");
 extern const uint8_t index_html_end[] asm("_binary_index_html_end");
+extern const uint8_t new_code_js_start[] asm("_binary_new_code_js_start");
+extern const uint8_t new_code_js_end[] asm("_binary_new_code_js_end");
 
 
 /* const http headers stored in ROM */
@@ -182,6 +184,51 @@ char* http_server_get_header(char *request, char *header_name, int *len) {
 	return NULL;
 }
 
+inline int isHex(int x) {
+	return (x >= '0' && x <= '9')
+		|| (x >= 'a' && x <= 'f')
+		|| (x >= 'A' && x <= 'F');
+}
+
+// Decode a URI component inline
+// length should be string length excluding \0
+// Does not deal with null terminators so ensure you place one.
+/**
+ * Decode a URI component inline
+ * @param str String to decode.
+ * @param length Length of string excluding null-terminator
+ * @returns New length of string (excluding null).
+ * 	If return value < length then the string has been properly truncated.
+ */
+static int uriDecode(char* str, int length) {
+	char* in = str;
+	const char* end = str + length - 1;
+	char* out = str;
+	int c = 0;
+
+	while (in <= end) {
+		c = *in++;
+		if (c == '+') {
+			c = ' ';
+		}
+		else if (c == '%' && isHex(*in) && isHex(*(in + 1))) {
+			if (sscanf(in, "%2x", &c) < 1) {
+				// error
+				c = '%';
+			}
+			else {
+				in += 2;
+			}
+		}
+		*out++ = c;
+	}
+	// Term if possible
+	if (out < end)
+		*out = '\0';
+	// Return new length
+	return (int)(out - str);
+}
+
 
 void http_server_netconn_serve(struct netconn *conn) {
 
@@ -228,6 +275,11 @@ void http_server_netconn_serve(struct netconn *conn) {
 				else if(strstr(line, "GET /code.js ")) {
 					netconn_write(conn, http_js_hdr, sizeof(http_js_hdr) - 1, NETCONN_NOCOPY);
 					netconn_write(conn, code_js_start, code_js_end - code_js_start, NETCONN_NOCOPY);
+				}
+				else if(strstr(line, "GET /new_code.js ")) {
+					ESP_LOGD(TAG, "new-code.js");
+					netconn_write(conn, http_js_hdr, sizeof(http_js_hdr) - 1, NETCONN_NOCOPY);
+					netconn_write(conn, new_code_js_start, new_code_js_end - new_code_js_start, NETCONN_NOCOPY);
 				}
 				else if(strstr(line, "GET /ap.json ")) {
 					/* if we can get the mutex, write the last version of the AP list */
@@ -387,6 +439,8 @@ void http_server_netconn_serve(struct netconn *conn) {
 						// Copy it
 						strncpy(setting->value, here, tmp_len);
 						setting->value[tmp_len] = '\0';
+						// Decode it
+						uriDecode(setting->value, tmp_len);
 						// Trigger callback
 						if (setting->callback) setting->callback(setting);
 						had_changes = true;

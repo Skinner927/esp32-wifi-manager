@@ -275,7 +275,8 @@ typedef struct custom_setting {
 
 /**
  * @brief Use this function to easily add a custom setting
- * @param key Key to identify the setting (HTML name attribute).
+ * @param key Key to identify the setting (HTML name attribute). Keys should
+ * 	only contain [a-zA-Z0-9]{1,10}.
  * @param label Label to show next to input, may be NULL.
  * @param init_value Initial value. May be NULL.
  * @param value_size Max allowed length of value including null terminator.

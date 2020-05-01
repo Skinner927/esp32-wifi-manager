@@ -58,7 +58,7 @@
     if (config.headers) {
       Object.keys(config.headers).forEach(function(key) {
         // Not sure if I need encodeURI
-        xhr.setRequestHeader(key, config.headers[key]);
+        xhr.setRequestHeader(key, encodeURIComponent(config.headers[key]));
       });
     }
     if (callback) {
