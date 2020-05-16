@@ -7,13 +7,28 @@
 //  node server.js
 const express = require('express');
 const path = require('path');
+const parseUrl = require('parseurl');
+
 const app = express();
 const port = 8000;
 
 // Add static dir to server index, css, etc.
-app.use(express.static(path.join(__dirname, 'src')));
+//app.use(express.static(path.join(__dirname, '.tmp')));
 // Add JSON request support
 app.use(express.json());
+
+// Only file we serve is index because everything else should be inlined
+const staticRoot = express.static(path.join(__dirname, '.tmp'));
+app.use(function(req, res, next) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return next();
+  }
+  const path = parseUrl(req).pathname
+  if (path === '/' || path === '/index.html') {
+    return staticRoot(req, res, next);
+  }
+  return next();
+});
 
 // API
 app.get('/ap.json', (req, res) => {
@@ -32,7 +47,7 @@ app.get('/ap.json', (req, res) => {
 });
 
 app.get('/status.json', (req, res) => {
-  res.json({});
+  res.json({"ssid":"zodmgbbq","ip":"192.168.1.119","netmask":"255.255.255.0","gw":"192.168.1.1","urc":0});
 });
 
 app.delete('/connect.json', (req, res) => {
