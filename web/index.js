@@ -2,7 +2,7 @@
 (function wifiManagerMain(global) {
 
   // Display errors
-  var fatalError = (function() {
+  var fatalError = (function () {
     var $fatalError = document.getElementById('error-bar');
 
     function fatalErrorClear() {
@@ -35,7 +35,7 @@
    */
   function ajax(config, callback) {
     if (typeof config === 'string') {
-      config = {url: config};
+      config = { url: config };
     }
     if (!config || !config.url) {
       return;
@@ -56,17 +56,17 @@
     xhr.open(config.method, url);
     xhr.setRequestHeader('Content-Type', 'application/json');
     if (config.headers) {
-      Object.keys(config.headers).forEach(function(key) {
+      Object.keys(config.headers).forEach(function (key) {
         // Not sure if I need encodeURI
         xhr.setRequestHeader(key, encodeURIComponent(config.headers[key]));
       });
     }
     if (callback) {
-      xhr.onerror = xhr.onabort = function() {
+      xhr.onerror = xhr.onabort = function () {
         callback(xhr.responseText || 'HTTP Error ' + xhr.status, null);
       };
 
-      xhr.onload = function() {
+      xhr.onload = function () {
         if (xhr.status !== 200) {
           xhr.onerror();
           return;
@@ -75,7 +75,7 @@
         var data = null;
         try {
           data = config.isJSON ? JSON.parse(xhr.responseText) : xhr.responseText;
-        } catch(e) {
+        } catch (e) {
           console.log('Error converting response to JSON', e, xhr.responseText);
           xhr.onerror();
           return;
@@ -89,7 +89,7 @@
   // slideUp, slideDown, slideToggle
   // https://w3bits.com/javascript-slidetoggle/
   var slideDuration = 250;
-  function slideOut (target) { // slideUp
+  function slideOut(target) { // slideUp
     target.style.transitionProperty = 'height, margin, padding';
     target.style.transitionDuration = slideDuration + 'ms';
     target.style.boxSizing = 'border-box';
@@ -101,7 +101,7 @@
     target.style.paddingBottom = 0;
     target.style.marginTop = 0;
     target.style.marginBottom = 0;
-    window.setTimeout(function() {
+    window.setTimeout(function () {
       target.style.display = 'none';
       target.style.removeProperty('height');
       target.style.removeProperty('padding-top');
@@ -138,7 +138,7 @@
     target.style.removeProperty('padding-bottom');
     target.style.removeProperty('margin-top');
     target.style.removeProperty('margin-bottom');
-    window.setTimeout(function() {
+    window.setTimeout(function () {
       target.style.removeProperty('height');
       target.style.removeProperty('overflow');
       target.style.removeProperty('transition-duration');
@@ -148,7 +148,7 @@
 
   // Polyfill for querySelector(':scope
   // https://github.com/lazd/scopedQuerySelectorShim Commit 97168ea on Oct 26, 2018
-  !function(){if(!HTMLElement.prototype.querySelectorAll)throw new Error("rootedQuerySelectorAll: This polyfill can only be used with browsers that support querySelectorAll");var e=document.createElement("div");try{e.querySelectorAll(":scope *")}catch(l){var t=/^\s*:scope/gi;function r(r,l){var o=r[l];r[l]=function(r){var l,i=!1,c=!1;if(r.match(t)){r=r.replace(t,""),this.parentNode||(e.appendChild(this),c=!0);var n=this.parentNode;return this.id||(this.id="rootedQuerySelector_id_"+(new Date).getTime(),i=!0),l=o.call(n,"#"+this.id+" "+r),i&&(this.id=""),c&&e.removeChild(this),l}return o.call(this,r)}}r(HTMLElement.prototype,"querySelector"),r(HTMLElement.prototype,"querySelectorAll")}}();
+  !function () { if (!HTMLElement.prototype.querySelectorAll) throw new Error("rootedQuerySelectorAll: This polyfill can only be used with browsers that support querySelectorAll"); var e = document.createElement("div"); try { e.querySelectorAll(":scope *") } catch (l) { var t = /^\s*:scope/gi; function r(r, l) { var o = r[l]; r[l] = function (r) { var l, i = !1, c = !1; if (r.match(t)) { r = r.replace(t, ""), this.parentNode || (e.appendChild(this), c = !0); var n = this.parentNode; return this.id || (this.id = "rootedQuerySelector_id_" + (new Date).getTime(), i = !0), l = o.call(n, "#" + this.id + " " + r), i && (this.id = ""), c && e.removeChild(this), l } return o.call(this, r) } } r(HTMLElement.prototype, "querySelector"), r(HTMLElement.prototype, "querySelectorAll") } }();
 
   //////////////////////////////////////////////////////
   // MAIN
@@ -163,7 +163,7 @@
   var cleanSettings = {};
   var settingElements = null;
   function reloadSettings(success) {
-    ajax('/settings.json', function(err, settings) {
+    ajax('/settings.json', function (err, settings) {
       if (err) {
         fatalError('Error building config');
         return;
@@ -173,7 +173,7 @@
         return;
       }
       // Convert settings to dict
-      cleanSettings = settings.reduce(function(obj, setting) {
+      cleanSettings = settings.reduce(function (obj, setting) {
         obj[setting.key] = setting;
         return obj;
       }, {});
@@ -192,7 +192,7 @@
     var $panel = document.getElementById('user-settings-panel');
 
     // Open settings panel on "Settings" button click
-    $settingsBtn.addEventListener('click', function() {
+    $settingsBtn.addEventListener('click', function () {
       slideOut($views.wifi);
       slideIn($views.settings);
       // TODO: refill settings
@@ -202,14 +202,14 @@
     // Close button
     $views.settings
       .querySelector(':scope input[value="Cancel"]')
-      .addEventListener('click', function() {
+      .addEventListener('click', function () {
         slideOut($views.settings);
         slideIn($views.wifi);
       });
 
     // Build the settings controls. We do this here and not in
     // reloadSettings() because settings can never change.
-    Object.keys(cleanSettings).forEach(function(key) {
+    Object.keys(cleanSettings).forEach(function (key) {
       var setting = cleanSettings[key];
       var settingId = 'user-setting-' + setting.key;
 
@@ -238,7 +238,7 @@
           drop.name = setting.key;
 
           // Add all options
-          setting.options.split('\n').forEach(function(pair) {
+          setting.options.split('\n').forEach(function (pair) {
             var parts = pair.split('\t');
             var opt = document.createElement('option');
             opt.value = parts[0];
@@ -252,7 +252,7 @@
           box.classList.add('user-setting-radio');
           $container.appendChild(box);
 
-          setting.options.split('\n').forEach(function(pair, i) {
+          setting.options.split('\n').forEach(function (pair, i) {
             var parts = pair.split('\t');
             var div = document.createElement('div');
             div.style.clear = 'both';
@@ -273,7 +273,7 @@
           break;
         case 'textarea':
           var ta = document.createElement('textarea');
-          ta.id =  settingId;
+          ta.id = settingId;
           ta.name = setting.key;
           ta.setAttribute('maxlength', setting.size);
           $container.appendChild(ta);
@@ -281,7 +281,7 @@
         default:
           var input = document.createElement('input');
           input.type = setting.type;
-          input.id =  settingId;
+          input.id = settingId;
           input.name = setting.key;
           input.setAttribute('maxlength', setting.size);
           $container.appendChild(input);

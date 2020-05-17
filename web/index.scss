@@ -6,13 +6,15 @@ body {
 }
 a {
   color: darkblue;
-  transition: color .2s ease-out;
-  text-decoration: none
+  transition: color 0.2s ease-out;
+  text-decoration: none;
 }
 a:hover {
   color: red;
 }
-input, select, textarea {
+input,
+select,
+textarea {
   display: none;
   font: 1.1em tahoma, arial, sans-serif;
 }
@@ -34,7 +36,8 @@ p {
 #credits {
   display: none;
 }
-#app {}
+#app {
+}
 #app-wrap {
   max-width: 900px;
   margin: 0 auto;
@@ -104,16 +107,17 @@ header {
 section {
   background-color: #fff;
   border-bottom: 1px solid #888;
-  border-top: 1px solid ;
+  border-top: 1px solid;
 }
 h1 {
   display: block;
   text-align: center;
   margin: 0;
   padding: 15px;
-  font-size: 1.4em
+  font-size: 1.4em;
 }
-h2, label.h2 {
+h2,
+label.h2 {
   display: block;
   font-weight: bold;
   margin: 0;
@@ -121,7 +125,7 @@ h2, label.h2 {
   padding: 10px;
   text-transform: uppercase;
   color: #888;
-  font-size: 1.0em
+  font-size: 1em;
 }
 h3 {
   margin: 0;
@@ -155,21 +159,21 @@ h3 {
   width: 80%;
   margin-left: 35px;
   padding: 10px 0px 10px 10px;
-  display: block
+  display: block;
 }
 #manual_pwd {
   border: none;
   width: 80%;
   margin-left: 35px;
   padding: 10px 0px 10px 10px;
-  display: block
+  display: block;
 }
 #pwd {
   border: none;
   width: 80%;
   margin-left: 35px;
   padding: 10px 0px 10px 10px;
-  display: block
+  display: block;
 }
 .buttons {
   padding: 15px;
@@ -213,27 +217,27 @@ h3 {
   margin-right: 20px;
 }
 .w0 {
-  background: url(inline-image('./img/wifi0.png')) no-repeat right top;
+  background: url(inline-image("./img/wifi0.png")) no-repeat right top;
   height: 24px;
   margin-right: 20px;
 }
 .w1 {
-  background: url(inline-image('./img/wifi1.png')) no-repeat right top;
+  background: url(inline-image("./img/wifi1.png")) no-repeat right top;
   height: 24px;
   margin-right: 20px;
 }
 .w2 {
-  background: url(inline-image('./img/wifi2.png')) no-repeat right top;
+  background: url(inline-image("./img/wifi2.png")) no-repeat right top;
   height: 24px;
   margin-right: 20px;
 }
 .w3 {
-  background: url(inline-image('./img/wifi3.png')) no-repeat right top;
+  background: url(inline-image("./img/wifi3.png")) no-repeat right top;
   height: 24px;
   margin-right: 20px;
 }
 .pw {
-  background: url(inline-image('./img/lock.png')) no-repeat right top;
+  background: url(inline-image("./img/lock.png")) no-repeat right top;
   height: 24px;
   margin-right: 20px;
   height: 24px;
@@ -264,9 +268,6 @@ h3 {
   width: auto;
 }
 
-
-
-
 /* SpinKit is licensed under the MIT License. Copyright (c) 2015 Tobias Ahlin */
 
 .spinner {
@@ -285,29 +286,31 @@ h3 {
   position: absolute;
   top: 0;
   left: 0;
-  -webkit-animation: sk-bounce 2.0s infinite ease-in-out;
-  animation: sk-bounce 2.0s infinite ease-in-out;
+  -webkit-animation: sk-bounce 2s infinite ease-in-out;
+  animation: sk-bounce 2s infinite ease-in-out;
 }
 .double-bounce2 {
-  -webkit-animation-delay: -1.0s;
-  animation-delay: -1.0s;
+  -webkit-animation-delay: -1s;
+  animation-delay: -1s;
 }
 @-webkit-keyframes sk-bounce {
-  0%, 100% {
-      -webkit-transform: scale(0.0)
+  0%,
+  100% {
+    -webkit-transform: scale(0);
   }
   50% {
-      -webkit-transform: scale(1.0)
+    -webkit-transform: scale(1);
   }
 }
 @keyframes sk-bounce {
-  0%, 100% {
-      transform: scale(0.0);
-      -webkit-transform: scale(0.0);
+  0%,
+  100% {
+    transform: scale(0);
+    -webkit-transform: scale(0);
   }
   50% {
-      transform: scale(1.0);
-      -webkit-transform: scale(1.0);
+    transform: scale(1);
+    -webkit-transform: scale(1);
   }
 }
 /* end of SpinKit */

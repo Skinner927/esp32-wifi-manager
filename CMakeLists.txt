@@ -1,12 +1,12 @@
 if(IDF_VERSION_MAJOR GREATER_EQUAL 4)
-    idf_component_register(SRC_DIRS src
+    idf_component_register(SRC_DIRS src lib
         REQUIRES log nvs_flash mdns wpa_supplicant lwip esp_http_server
         INCLUDE_DIRS src
-        EMBED_FILES src/style.css src/jquery.gz src/code.js src/index.html src/new_code.js)
+        EMBED_FILES src/index.html.gz)
 else()
     set(COMPONENT_SRCDIRS src)
-    set(COMPONENT_ADD_INCLUDEDIRS src)
+    set(COMPONENT_ADD_INCLUDEDIRS src lib)
     set(COMPONENT_REQUIRES log nvs_flash mdns wpa_supplicant lwip esp_http_server)
-    set(COMPONENT_EMBED_FILES src/style.css src/jquery.gz src/code.js src/index.html src/new_code.js)
+    set(COMPONENT_EMBED_FILES src/index.html.gz)
     register_component()
 endif()

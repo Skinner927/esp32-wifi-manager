@@ -10,7 +10,18 @@ const path = require('path');
 const parseUrl = require('parseurl');
 
 const app = express();
-const port = 8000;
+let port = 8000;
+for (let i = 1; i < process.argv.length; i++) {
+  if (process.argv[i] === '--port') {
+    let val = parseInt(process.argv[i + 1], 10);
+    if (val) {
+      port = val;
+      i++;
+      break;
+    }
+  }
+}
+const url = `http://127.0.0.1:${port}`;
 
 // Add static dir to server index, css, etc.
 //app.use(express.static(path.join(__dirname, '.tmp')));
@@ -19,7 +30,7 @@ app.use(express.json());
 
 // Only file we serve is index because everything else should be inlined
 const staticRoot = express.static(path.join(__dirname, '.tmp'));
-app.use(function(req, res, next) {
+app.use(function (req, res, next) {
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     return next();
   }
@@ -47,7 +58,7 @@ app.get('/ap.json', (req, res) => {
 });
 
 app.get('/status.json', (req, res) => {
-  res.json({"ssid":"zodmgbbq","ip":"192.168.1.119","netmask":"255.255.255.0","gw":"192.168.1.1","urc":0});
+  res.json({ "ssid": "zodmgbbq", "ip": "192.168.1.119", "netmask": "255.255.255.0", "gw": "192.168.1.1", "urc": 0 });
 });
 
 app.delete('/connect.json', (req, res) => {
@@ -107,4 +118,4 @@ app.get('/settings.json', (req, res) => {
 });
 
 // Start server
-app.listen(port, () => console.log(`Listening at http://127.0.0.1:${port}`));
+app.listen(port, () => console.log(`Listening at ${url}`));
