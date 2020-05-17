@@ -1,5 +1,13 @@
 // This file is run after the entire document has loaded.
-(function wifiManagerMain(global) {
+
+// Polyfill for querySelector(':scope
+// https://github.com/lazd/scopedQuerySelectorShim Commit 97168ea on Oct 26, 2018
+/* eslint-disable */
+!function () { if (!HTMLElement.prototype.querySelectorAll) throw new Error('rootedQuerySelectorAll: This polyfill can only be used with browsers that support querySelectorAll'); var e = document.createElement('div'); try { e.querySelectorAll(':scope *'); } catch (l) { var t = /^\s*:scope/gi; function r(r, l) { var o = r[l]; r[l] = function (r) { var l, i = !1, c = !1; if (r.match(t)) { r = r.replace(t, ''), this.parentNode || (e.appendChild(this), c = !0); var n = this.parentNode; return this.id || (this.id = 'rootedQuerySelector_id_' + (new Date).getTime(), i = !0), l = o.call(n, '#' + this.id + ' ' + r), i && (this.id = ''), c && e.removeChild(this), l; } return o.call(this, r); }; } r(HTMLElement.prototype, 'querySelector'), r(HTMLElement.prototype, 'querySelectorAll'); } }();
+/* eslint-enable */
+
+(function wifiManagerMain() {
+  'use strict';
 
   // Display errors
   var fatalError = (function () {
@@ -29,7 +37,7 @@
    * @param {string} config.url URL to send request to.
    * @param {string} [config.method='GET'] GET POST DELETE PUT etc.
    * @param {object} [config.headers] Key:value params to send. Headers are
-   *  used instead of JSON because it's easier.
+   *  used instead of JSON because it's easier to parse on the server.
    * @param {boolean} [config.isJSON=true] Set to false to get text back.
    * @param {function} callback Callback with results: callback(err, data)
    */
@@ -57,7 +65,7 @@
     xhr.setRequestHeader('Content-Type', 'application/json');
     if (config.headers) {
       Object.keys(config.headers).forEach(function (key) {
-        // Not sure if I need encodeURI
+        // Not sure if I need encodeURI but let's be safe
         xhr.setRequestHeader(key, encodeURIComponent(config.headers[key]));
       });
     }
@@ -86,7 +94,7 @@
     xhr.send(null);
   }
 
-  // slideUp, slideDown, slideToggle
+  // slideUp, slideDown
   // https://w3bits.com/javascript-slidetoggle/
   var slideDuration = 250;
   function slideOut(target) { // slideUp
@@ -131,7 +139,7 @@
     target.style.marginBottom = 0;
     target.offsetHeight;
     target.style.boxSizing = 'border-box';
-    target.style.transitionProperty = "height, margin, padding";
+    target.style.transitionProperty = 'height, margin, padding';
     target.style.transitionDuration = slideDuration + 'ms';
     target.style.height = height + 'px';
     target.style.removeProperty('padding-top');
@@ -146,10 +154,6 @@
     }, slideDuration);
   }
 
-  // Polyfill for querySelector(':scope
-  // https://github.com/lazd/scopedQuerySelectorShim Commit 97168ea on Oct 26, 2018
-  !function () { if (!HTMLElement.prototype.querySelectorAll) throw new Error("rootedQuerySelectorAll: This polyfill can only be used with browsers that support querySelectorAll"); var e = document.createElement("div"); try { e.querySelectorAll(":scope *") } catch (l) { var t = /^\s*:scope/gi; function r(r, l) { var o = r[l]; r[l] = function (r) { var l, i = !1, c = !1; if (r.match(t)) { r = r.replace(t, ""), this.parentNode || (e.appendChild(this), c = !0); var n = this.parentNode; return this.id || (this.id = "rootedQuerySelector_id_" + (new Date).getTime(), i = !0), l = o.call(n, "#" + this.id + " " + r), i && (this.id = ""), c && e.removeChild(this), l } return o.call(this, r) } } r(HTMLElement.prototype, "querySelector"), r(HTMLElement.prototype, "querySelectorAll") } }();
-
   //////////////////////////////////////////////////////
   // MAIN
 
@@ -159,26 +163,41 @@
     settings: document.getElementById('user-settings'),
   };
 
-  // Build settings
-  var cleanSettings = {};
-  var settingElements = null;
+  // Store all app state here instead of random globals
+  var state = {
+    apList: [],
+    selectedSSID: '',
+    refreshAPInterval: null,
+    checkStatusInterval: null,
+    cleanSettings: {},
+    settingElements: null,
+  };
+
+  ////////////////////
+  // APIs
+
+  // Build settings object
   function reloadSettings(success) {
-    ajax('/settings.json', function (err, settings) {
+    fatalError.clear();
+    ajax('/settings', function (err, settings) {
       if (err) {
-        fatalError('Error building config');
+        fatalError('Error building settings config');
         return;
       }
       if (!Array.isArray(settings)) {
-        fatalError('Invalid Settings');
+        fatalError('Invalid settings');
         return;
       }
+      if (settings.len < 1) {
+        return; // No settings
+      }
       // Convert settings to dict
-      cleanSettings = settings.reduce(function (obj, setting) {
+      state.cleanSettings = settings.reduce(function (obj, setting) {
         obj[setting.key] = setting;
         return obj;
       }, {});
 
-      if (settingElements) {
+      if (state.settingElements) {
         // TODO: If not null refresh their values
       }
 
@@ -209,8 +228,8 @@
 
     // Build the settings controls. We do this here and not in
     // reloadSettings() because settings can never change.
-    Object.keys(cleanSettings).forEach(function (key) {
-      var setting = cleanSettings[key];
+    Object.keys(state.cleanSettings).forEach(function (key) {
+      var setting = state.cleanSettings[key];
       var settingId = 'user-setting-' + setting.key;
 
       // Add a label first
@@ -230,62 +249,62 @@
 
       // Create based on type
       switch (setting.type) {
-        case 'select':
-          var drop = document.createElement('select');
-          $container.appendChild(drop);
-          drop.value = setting.value;
-          drop.id = settingId;
-          drop.name = setting.key;
+      case 'select':
+        var drop = document.createElement('select');
+        $container.appendChild(drop);
+        drop.value = setting.value;
+        drop.id = settingId;
+        drop.name = setting.key;
 
-          // Add all options
-          setting.options.split('\n').forEach(function (pair) {
-            var parts = pair.split('\t');
-            var opt = document.createElement('option');
-            opt.value = parts[0];
-            opt.text = parts[1];
-            drop.appendChild(opt);
-          });
-          break;
-        case 'radio':
-        case 'checkbox':
-          var box = document.createElement('div');
-          box.classList.add('user-setting-radio');
-          $container.appendChild(box);
+        // Add all options
+        setting.options.split('\n').forEach(function (pair) {
+          var parts = pair.split('\t');
+          var opt = document.createElement('option');
+          opt.value = parts[0];
+          opt.text = parts[1];
+          drop.appendChild(opt);
+        });
+        break;
+      case 'radio':
+      case 'checkbox':
+        var box = document.createElement('div');
+        box.classList.add('user-setting-radio');
+        $container.appendChild(box);
 
-          setting.options.split('\n').forEach(function (pair, i) {
-            var parts = pair.split('\t');
-            var div = document.createElement('div');
-            div.style.clear = 'both';
-            box.appendChild(div);
+        setting.options.split('\n').forEach(function (pair, i) {
+          var parts = pair.split('\t');
+          var div = document.createElement('div');
+          div.style.clear = 'both';
+          box.appendChild(div);
 
-            var radio = document.createElement('input');
-            radio.type = setting.type;
-            radio.id = settingId + '-' + i;
-            radio.name = setting.key;
-            radio.value = parts[0];
-            div.appendChild(radio);
+          var radio = document.createElement('input');
+          radio.type = setting.type;
+          radio.id = settingId + '-' + i;
+          radio.name = setting.key;
+          radio.value = parts[0];
+          div.appendChild(radio);
 
-            var lbl = document.createElement('label');
-            lbl.setAttribute('for', settingId + '-' + i);
-            lbl.innerHTML = parts[1];
-            div.appendChild(lbl);
-          });
-          break;
-        case 'textarea':
-          var ta = document.createElement('textarea');
-          ta.id = settingId;
-          ta.name = setting.key;
-          ta.setAttribute('maxlength', setting.size);
-          $container.appendChild(ta);
-          break;
-        default:
-          var input = document.createElement('input');
-          input.type = setting.type;
-          input.id = settingId;
-          input.name = setting.key;
-          input.setAttribute('maxlength', setting.size);
-          $container.appendChild(input);
-          break;
+          var lbl = document.createElement('label');
+          lbl.setAttribute('for', settingId + '-' + i);
+          lbl.innerHTML = parts[1];
+          div.appendChild(lbl);
+        });
+        break;
+      case 'textarea':
+        var ta = document.createElement('textarea');
+        ta.id = settingId;
+        ta.name = setting.key;
+        ta.setAttribute('maxlength', setting.size);
+        $container.appendChild(ta);
+        break;
+      default:
+        var input = document.createElement('input');
+        input.type = setting.type;
+        input.id = settingId;
+        input.name = setting.key;
+        input.setAttribute('maxlength', setting.size);
+        $container.appendChild(input);
+        break;
       }
     });
 
@@ -296,4 +315,4 @@
 
   // No errors? Let's show the app
   $views.wifi.style.display = 'block';
-})(this);
+})();

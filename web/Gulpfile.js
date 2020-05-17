@@ -9,6 +9,7 @@ const htmlmin = require('gulp-htmlmin');
 const inlinesource = require('gulp-inline-source');
 const gls = require('gulp-live-server');
 const gzip = require('gulp-gzip');
+const eslint = require('gulp-eslint');
 
 // Sass config
 const sassConfig = {
@@ -28,6 +29,12 @@ const uglifyConfig = {
   toplevel: true,
 };
 
+// ESLint
+const eslintConfig = {
+  useEslintrc: true,
+  fix: false,
+};
+
 // HTML minify config
 const htmlminConfig = {
   collapseBooleanAttributes: true,
@@ -43,7 +50,7 @@ const htmlminConfig = {
 // Dev server config
 const serverScript = './server.js'
 const serverPort = 8010;
-const start = (process.platform == 'darwin'? 'open': process.platform == 'win32'? 'start': 'xdg-open');
+const start = (process.platform == 'darwin' ? 'open' : process.platform == 'win32' ? 'start' : 'xdg-open');
 
 // File path config
 // Paths that are used in Gulp need to use unix style separators regardless of system.
@@ -63,18 +70,18 @@ const tmpDir = './.tmp';
 // https://stackoverflow.com/a/14919494/721519
 function _humanFileSize(bytes, si) {
   var thresh = si ? 1000 : 1024;
-  if(Math.abs(bytes) < thresh) {
-      return bytes + ' B';
+  if (Math.abs(bytes) < thresh) {
+    return bytes + ' B';
   }
   var units = si
-      ? ['kB','MB','GB','TB','PB','EB','ZB','YB']
-      : ['KiB','MiB','GiB','TiB','PiB','EiB','ZiB','YiB'];
+    ? ['kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+    : ['KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'];
   var u = -1;
   do {
-      bytes /= thresh;
-      ++u;
-  } while(Math.abs(bytes) >= thresh && u < units.length - 1);
-  return bytes.toFixed(1)+' '+units[u];
+    bytes /= thresh;
+    ++u;
+  } while (Math.abs(bytes) >= thresh && u < units.length - 1);
+  return bytes.toFixed(1) + ' ' + units[u];
 }
 
 const clean = parallel(
@@ -101,6 +108,14 @@ function minifyJs() {
     .pipe(dest(tmpDir));
 }
 
+function lintJs() {
+  return src(index.js)
+      .pipe(eslint(eslintConfig))
+      .pipe(eslint.format())
+      .pipe(eslint.failAfterError());
+}
+exports.js = lintJs;
+
 function minifyHtml() {
   return src(index.html)
     .pipe(htmlmin(htmlminConfig))
@@ -123,8 +138,8 @@ function gzipHtml() {
       append: true,
     }))
     .pipe(dest(path.posix.dirname(index.html_gz)))
-    .pipe(through2.obj(function(dst, _, cb) {
-      fs.stat(dst.history[0], function(err, stat) {
+    .pipe(through2.obj(function (dst, _, cb) {
+      fs.stat(dst.history[0], function (err, stat) {
         if (err) {
           return cb(err);
         }
@@ -142,35 +157,70 @@ function gzipHtml() {
 //     .pipe(dest(path.dirname(index.html_dst)));
 // }
 
-const preBuild = parallel(buildSass, minifyJs, minifyHtml);
+const minifyAll = parallel(buildSass, minifyJs, minifyHtml);
 
 exports.clean = clean;
-exports.default = exports.build = series(clean, preBuild, inlineHtml, gzipHtml);
+exports.default = exports.build = series(clean, minifyAll, inlineHtml, gzipHtml);
 
-exports.dev = series(clean, function setupDev(cb) {
-  // Modify config for dev
+function _dev(minify, doLintJs) {
+  // Add sourcemaps for dev
   uglifyConfig.sourceMap = { url: 'inline' };
 
   const server = gls.new([serverScript, '--port', `${serverPort}`]);
+  server.start();
+
+  let minifyTasks = minifyAll;
+  if (!minify) {
+    // Still have to convert sass to css but don't minify it
+    sassConfig.outputStyle = 'nested';
+    // mock js and html minify tasks by coping to tmpDir
+    minifyTasks = parallel(
+      buildSass,
+      function copyJs () { return src(index.js).pipe(dest(tmpDir)); },
+      function copyHTML() { return src(index.html).pipe(dest(tmpDir)); }
+    );
+  }
+
+  const seriesPipeline = [
+    minifyTasks,
+    inlineHtml,
+    function reloadServer(icb) {
+      server.notify({ path: 'index.html' });
+      icb();
+    }
+  ];
+
+  if (doLintJs) {
+    seriesPipeline.unshift(lintJs);
+  }
 
   // Watch source files
-  watch(Object.values(index), { ignoreInitial: false },
-    series(
-      preBuild,
-      inlineHtml,
-      function reloadServer(icb) {
-        server.notify({ path: 'index.html' });
-        icb();
-      })
+  watch(
+    [
+      index.html,
+      index.js,
+      index.scss,
+      '.eslintrc.js',
+    ],
+    { ignoreInitial: false },
+    series.apply(series, seriesPipeline)
   );
 
   // Watch for changes in the server script
-  watch(serverScript, { ignoreInitial: false }, function reloadServer(icb) {
+  watch(serverScript, function reloadServer(icb) {
     server.start();
     icb();
   });
   // Open server URL
   childProcess.exec(`${start} http://127.0.0.1:${serverPort}`);
+}
 
+exports.dev = series(clean, function watchesAndServer(cb) {
+  _dev(true, true);
+  cb();
+});
+
+exports.dev_no_min = series(clean, function watchesAndServerNoMinify(cb) {
+  _dev(false, true);
   cb();
 });
