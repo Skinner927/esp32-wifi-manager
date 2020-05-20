@@ -1,32 +1,39 @@
-@import 'normalize.css';
+@charset 'utf-8';
 
-$pageBg: #808080;
-$borderColor: #888888;
-$lightBg: #FFFFFF;
-$darkBg: #EEEEEE;
+@import 'sanitize.css/sanitize';
+// Base styles hijacked and modified from
+// https://mblode.github.io/marx/
+@import '_marx.scss';
 
-$red: #CC0000;
-$redDark: #990000;
+// Modify stock controls
 
-$padTop: 0.5em;
-$padRight: 0.5em;
+// Last button in a group is floated right
+.button-group {
+  display: block;
+  clear: both;
 
-html, body {
-  background: $pageBg;
-  border: 0;
-  margin: 0;
-  font: 1.1em tahoma, arial, sans-serif;
+  & > *:last-child {
+    float: right;
+  }
 }
 
-#app-wrap {
-  max-width: 900px;
-  margin: 0 auto;
-  background-color: $darkBg;
+// Components
+body {
+  background: $grey;
+}
+main {
+  background: $white;
+}
+
+main > section {
+  display: none;
 }
 
 #error-bar {
+  color: $white;
   background: $red;
-  border: 1px solid $redDark;
-  color: white;
-  padding: $padTop $padRight;
+  border: 1px solid darken($red, 20%);
+  padding: $md-pad;
+  margin-top: 0;
+  display: none;
 }

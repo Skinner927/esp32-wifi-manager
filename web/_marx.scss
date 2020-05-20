@@ -1,0 +1,518 @@
+// Base styles hijacked and modified from
+// https://mblode.github.io/marx/
+
+/** _variables.scss **/
+
+//Basic stylings
+$br: 4px !default;
+$xs-pad: 4px !default;
+$sm-pad: 8px !default;
+$md-pad: 16px !default;
+$lg-pad: 20px !default;
+$xlg-pad: 40px !default;
+$trans: 0.3s !default;
+
+//Breakpoints
+$small-breakpoint: 400px !default;
+$large-breakpoint: 768px !default;
+
+//Colors
+$primary: #007bff !default;
+$accent: #64ffda !default;
+$red: #f44336 !default;
+$yellow: #ffeb3b !default;
+$grey: #f7f7f9 !default;
+$white: #fff !default;
+$black: #000 !default;
+
+//Text
+$text: rgba(0, 0, 0, 0.8) !default;
+$secondary: rgba(0, 0, 0, 0.54) !default;
+$disabled: rgba(0, 0, 0, 0.38) !default;
+$dividers: rgba(0, 0, 0, 0.12) !default;
+
+//Links
+$link-color: $primary !default;
+$link-hover-color: darken($link-color, 15%) !default;
+
+//Font
+$sans-serif: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol" !default;
+$serif: Georgia, Times, 'Times New Roman', serif !default;
+$monospace: Menlo, Monaco, Consolas, 'Courier New', monospace !default;
+$font-family: $sans-serif !default;
+
+//Typography
+$font-size-base: 16px !default;
+$font-size-small: ceil(($font-size-base * 0.85)) !default;
+$font-size-h1: 40px !default;
+$font-size-h2: 32px !default;
+$font-size-h3: 28px !default;
+$font-size-h4: 24px !default;
+$font-size-h5: 20px !default;
+$font-size-h6: 16px !default;
+$line-height-base: 1.5 !default;
+
+//Other
+$border: 1px solid $dividers !default;
+
+
+/** _base.scss **/
+main,
+header,
+footer,
+article,
+section,
+aside,
+details,
+summary {
+  margin: 0 auto;
+  margin-bottom: $md-pad;
+  width: 100%;
+}
+
+main {
+  display: block;
+  margin: 0 auto;
+  max-width: $large-breakpoint;
+  padding: 0 $md-pad $md-pad;
+}
+
+footer {
+  border-top: $border;
+  padding: $md-pad 0;
+  text-align: center;
+
+  p {
+    margin-bottom: 0;
+  }
+}
+
+hr {
+  border: 0;
+  border-top: $border;
+  display: block;
+  margin-top: $md-pad;
+  margin-bottom: $md-pad;
+  width: 100%;
+  box-sizing: content-box;
+  height: 0;
+  overflow: visible;
+}
+
+img {
+  height: auto;
+  max-width: 100%;
+  vertical-align: baseline;
+}
+
+@media screen and (max-width: $small-breakpoint) {
+  article,
+  section,
+  aside {
+    clear: both;
+    display: block;
+    max-width: 100%;
+  }
+
+  img {
+    margin-right: $md-pad;
+  }
+}
+
+embed,
+iframe,
+video {
+  border: 0;
+}
+
+/** _typography.scc **/
+body {
+  color: $text;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  line-height: $line-height-base;
+}
+
+p {
+  margin: 0;
+  padding: 0;  // use padding instead of margin
+  padding-bottom: $md-pad;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: inherit;
+  font-family: inherit;
+  line-height: 1.2;
+  font-weight: 500;
+  margin: 0;
+}
+
+// Change all headings to use padding instead of margin
+h1 {
+  font-size: $font-size-h1;
+  padding: $lg-pad 0 $md-pad;
+}
+
+h2 {
+  font-size: $font-size-h2;
+  padding: $lg-pad 0 $md-pad;
+}
+
+h3 {
+  font-size: $font-size-h3;
+  padding: $md-pad 0 $xs-pad;
+}
+
+h4 {
+  font-size: $font-size-h4;
+  padding: $md-pad 0 $xs-pad;
+}
+
+h5 {
+  font-size: $font-size-h5;
+  padding: $md-pad 0 $xs-pad;
+}
+
+h6 {
+  font-size: $font-size-h6;
+  padding: $md-pad 0 $xs-pad;
+}
+
+small {
+  color: $secondary;
+  vertical-align: bottom;
+}
+
+// pre {
+//   background: $grey;
+//   color: $text;
+//   display: block;
+//   font-family: $monospace;
+//   font-size: $font-size-base;
+//   margin: $md-pad 0;
+//   padding: $md-pad;
+//   white-space: pre-wrap;
+//   overflow-wrap: break-word;
+// }
+
+// code {
+//   color: $text;
+//   font-family: $monospace;
+//   font-size: $font-size-base;
+//   line-height: inherit;
+//   margin: 0;
+//   padding: 0;
+//   vertical-align: baseline;
+//   word-break: break-all;
+//   word-wrap: break-word;
+// }
+
+a {
+  color: $link-color;
+  text-decoration: none;
+  background-color: transparent;
+
+  &:hover,
+  &:focus {
+    color: darken($primary, 10%);
+    text-decoration: underline;
+    cursor: pointer; // add
+  }
+}
+
+// dl {
+//   margin-bottom: $md-pad;
+// }
+
+// dd {
+//   margin-left: $xlg-pad;
+// }
+
+// ul,
+// ol {
+//   margin-bottom: $sm-pad;
+//   padding-left: $xlg-pad;
+//   vertical-align: baseline;
+// }
+
+// blockquote {
+//   border-left: 2px solid $text;
+//   font-family: $serif;
+//   font-style: italic;
+//   margin: $md-pad 0;
+//   padding-left: $md-pad;
+// }
+
+// figcaption {
+//   font-family: $serif;
+// }
+
+// u {
+//   text-decoration: underline;
+// }
+
+// s {
+//   text-decoration: line-through;
+// }
+
+// sup {
+//   font-size: $font-size-small;
+//   vertical-align: super;
+// }
+
+// sub {
+//   font-size: $font-size-small;
+//   vertical-align: sub;
+// }
+
+// mark {
+//   background: $yellow;
+// }
+
+/** _form.scss **/
+
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="url"],
+input[type="date"],
+input[type="month"],
+input[type="time"],
+input[type="datetime"],
+input[type="datetime-local"],
+input[type="week"],
+input[type="number"],
+input[type="search"],
+input[type="tel"],
+select,
+textarea {
+  background: $white;
+  background-clip: padding-box;
+  border: $border;
+  border-radius: $br;
+  color: $text;
+  display: block;
+  width: 100%;
+  padding: $sm-pad $md-pad;
+  line-height: 1.5;
+  transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+  font-family: $sans-serif;
+}
+
+input[type="color"] {
+  background: $white;
+  border: $border;
+  border-radius: $br;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+input:not([type]) {
+  -webkit-appearance: none;
+  background: $white;
+  background-clip: padding-box;
+  border: $border;
+  border-radius: $br;
+  color: $text;
+  display: block;
+  width: 100%;
+  padding: $sm-pad $md-pad;
+  line-height: 1.5;
+  transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+  text-align: left;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+input[type="url"]:focus,
+input[type="date"]:focus,
+input[type="month"]:focus,
+input[type="time"]:focus,
+input[type="datetime"]:focus,
+input[type="datetime-local"]:focus,
+input[type="week"]:focus,
+input[type="number"]:focus,
+input[type="search"]:focus,
+input[type="tel"]:focus,
+input[type="color"]:focus,
+select:focus,
+textarea:focus {
+  background-color: #fff;
+  border-color: mix($primary, #fff);
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem fade_out($primary, 0.75);
+}
+
+input:not([type]):focus {
+  background-color: #fff;
+  border-color: mix($primary, #fff);
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem fade_out($primary, 0.75);
+}
+
+input[type="file"]:focus,
+input[type="radio"]:focus,
+input[type="checkbox"]:focus {
+  outline: 1px thin $dividers;
+}
+
+input[type="text"][disabled],
+input[type="password"][disabled],
+input[type="email"][disabled],
+input[type="url"][disabled],
+input[type="date"][disabled],
+input[type="month"][disabled],
+input[type="time"][disabled],
+input[type="datetime"][disabled],
+input[type="datetime-local"][disabled],
+input[type="week"][disabled],
+input[type="number"][disabled],
+input[type="search"][disabled],
+input[type="tel"][disabled],
+input[type="color"][disabled],
+select[disabled],
+textarea[disabled] {
+  background-color: $dividers;
+  color: $secondary;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+input:not([type])[disabled] {
+  background-color: $dividers;
+  color: $secondary;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+input[readonly],
+select[readonly],
+textarea[readonly] {
+  border-color: $dividers;
+  color: $secondary;
+}
+
+input:focus:invalid,
+textarea:focus:invalid,
+select:focus:invalid {
+  border-color: darken($red, 10);
+  color: $red;
+}
+
+input[type="file"]:focus:invalid:focus,
+input[type="radio"]:focus:invalid:focus,
+input[type="checkbox"]:focus:invalid:focus {
+  outline-color: $red;
+}
+
+select {
+  border: $border;
+  vertical-align: sub;
+}
+
+select:not([size]):not([multiple]) {
+  height: calc(2.25rem + 2px);
+}
+
+select[multiple] {
+  height: auto;
+}
+
+label {
+  display: inline-block;
+  line-height: 2;
+}
+
+fieldset {
+  border: 0;
+  margin: 0;
+  padding: $sm-pad 0;
+}
+
+legend {
+  border-bottom: $border;
+  color: $text;
+  display: block;
+  margin-bottom: $sm-pad;
+  padding: $sm-pad 0;
+  width: 100%;
+}
+
+textarea {
+  overflow: auto;
+  resize: vertical;
+}
+
+input[type=checkbox],
+input[type=radio] {
+  box-sizing: border-box;
+  padding: 0;
+  display: inline;
+}
+
+/** Buttons **/
+
+input[type=submit],
+input[type=reset],
+input[type=button],
+button {
+  background-color: $primary;
+  border: $primary;
+  border-radius: $br;
+  color: $white;
+  padding: $sm-pad $md-pad;
+  display: inline-block;
+  font-weight: 400;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  user-select: none;
+  border: 1px solid transparent;
+  font-size: 1rem;
+  line-height: 1.5;
+  transition: color .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+
+  &.outline { // Add
+    background-color: transparent;
+    border: 1px solid $primary;
+    color: $primary;
+  }
+
+  &, &.outline {
+    &:hover { // Moved
+      background-color: darken($primary, 7.5%);
+      border-color: darken($primary, 10%);
+      color: $white;
+      cursor: pointer; // add
+    }
+
+    &:focus { // Moved
+      outline: 0;
+      box-shadow: 0 0 0 0.2rem fade_out($primary, 0.5);
+    }
+
+    &:disabled { // Moved
+      opacity: .65;
+      cursor: not-allowed;
+      background-color: $primary;
+      border-color: $primary;
+      color: $white;
+    }
+
+    &::-moz-focus-inner { // Moved
+      padding: 0;
+    }
+
+    &:not(:disabled):active { // Moved
+      background-color: darken($primary, 10%);
+      border-color: darken($primary, 12.5%);
+      color: $white;
+    }
+  }
+}

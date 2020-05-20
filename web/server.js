@@ -24,22 +24,22 @@ for (let i = 1; i < process.argv.length; i++) {
 const url = `http://127.0.0.1:${port}`;
 
 // Add static dir to server index, css, etc.
-//app.use(express.static(path.join(__dirname, '.tmp')));
+app.use(express.static(path.join(__dirname, '.tmp')));
 // Add JSON request support
 app.use(express.json());
 
 // Only file we serve is index because everything else should be inlined
-const staticRoot = express.static(path.join(__dirname, '.tmp'));
-app.use(function (req, res, next) {
-  if (req.method !== 'GET' && req.method !== 'HEAD') {
-    return next();
-  }
-  const path = parseUrl(req).pathname
-  if (path === '/' || path === '/index.html') {
-    return staticRoot(req, res, next);
-  }
-  return next();
-});
+// const staticRoot = express.static(path.join(__dirname, '.tmp'));
+// app.use(function (req, res, next) {
+//   if (req.method !== 'GET' && req.method !== 'HEAD') {
+//     return next();
+//   }
+//   const path = parseUrl(req).pathname
+//   if (path === '/' || path === '/index.html') {
+//     return staticRoot(req, res, next);
+//   }
+//   return next();
+// });
 
 // API
 app.get('/ap.json', (req, res) => {

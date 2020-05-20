@@ -10,13 +10,15 @@ const inlinesource = require('gulp-inline-source');
 const gls = require('gulp-live-server');
 const gzip = require('gulp-gzip');
 const eslint = require('gulp-eslint');
+var sourcemaps = require('gulp-sourcemaps');
 
 // Sass config
 const sassConfig = {
   outputStyle: 'compressed',
   functions: {
     ...require('./vendor/sass-inline-image')({ base: __dirname }),
-  }
+  },
+  includePaths: 'node_modules',
 };
 sass.compiler = require('node-sass');
 
@@ -28,6 +30,7 @@ const uglifyConfig = {
   sourceMap: false,
   toplevel: true,
 };
+let uglifyIncludeSourceMaps = false;
 
 // ESLint
 const eslintConfig = {
@@ -103,9 +106,15 @@ function buildSass() {
 }
 
 function minifyJs() {
-  return src(index.js)
-    .pipe(uglify(uglifyConfig))
-    .pipe(dest(tmpDir));
+  let pipe = src(index.js);
+  if (uglifyIncludeSourceMaps) {
+    pipe = pipe.pipe(sourcemaps.init());
+  }
+  pipe = pipe.pipe(uglify(uglifyConfig));
+  if (uglifyIncludeSourceMaps) {
+    pipe = pipe.pipe(sourcemaps.write());
+  }
+  return pipe.pipe(dest(tmpDir));
 }
 
 function lintJs() {
@@ -164,7 +173,7 @@ exports.default = exports.build = series(clean, minifyAll, inlineHtml, gzipHtml)
 
 function _dev(minify, doLintJs) {
   // Add sourcemaps for dev
-  uglifyConfig.sourceMap = { url: 'inline' };
+  uglifyIncludeSourceMaps = true;
 
   const server = gls.new([serverScript, '--port', `${serverPort}`]);
   server.start();
@@ -183,7 +192,7 @@ function _dev(minify, doLintJs) {
 
   const seriesPipeline = [
     minifyTasks,
-    inlineHtml,
+    //inlineHtml,
     function reloadServer(icb) {
       server.notify({ path: 'index.html' });
       icb();
@@ -200,6 +209,7 @@ function _dev(minify, doLintJs) {
       index.html,
       index.js,
       index.scss,
+      './*.scss',
       '.eslintrc.js',
     ],
     { ignoreInitial: false },
