@@ -23,10 +23,10 @@ body {
 }
 main {
   background: $white;
-}
 
-main > section {
-  display: none;
+  & > section {
+    display: none;
+  }
 }
 
 #error-bar {

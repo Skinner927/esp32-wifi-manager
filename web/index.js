@@ -111,6 +111,12 @@ var laterContainer = {};
 
   var Later = laterContainer.Later;
 
+  Later.fin = function Later_fin() {
+    var p = new Later();
+    p.done.apply(p, arguments);
+    return p;
+  };
+
   // Display errors with `fatalError('message')` and clear
   // with `fatalError.clear()`.
   var $fatalError = document.getElementById('error-bar');
@@ -141,10 +147,10 @@ var laterContainer = {};
    *  used instead of JSON because it's easier to parse on the server.
    * @param {boolean} [config.isJSON=true] Set to false to get text back.
    * @param {Number} [config.timeout=10000] Time to wait before timing out in ms.
-   * @param {function} callback Callback with results: callback(err, data)
+   * @returns {Later} Promise with results: promise(err, data)
    */
-  function ajax(config, callback) {
-    callback = callback || function() {};
+  function ajax(config) {
+    var defer = new Later();
     if (typeof config === 'string') {
       config = { url: config };
     }
@@ -179,14 +185,14 @@ var laterContainer = {};
     var timeoutId = null;
     if (config.timeout) {
       timeoutId = setTimeout(function() {
-        callback('Request timed out', null);
+        defer.done('Request timed out', null);
         timeoutId = null;
       }, config.timeout);
     }
 
     xhr.onerror = xhr.onabort = function () {
       if (timeoutId) { clearTimeout(timeoutId); timeoutId = null; }
-      callback(xhr.responseText || 'HTTP Error ' + xhr.status, null);
+      defer.done(xhr.responseText || 'HTTP Error ' + xhr.status, null);
     };
 
     xhr.onload = function () {
@@ -204,16 +210,18 @@ var laterContainer = {};
         xhr.onerror();
         return;
       }
-      callback(null, data);
+      defer.done(null, data);
     };
 
     xhr.send(null);
+    return defer;
   }
 
   // slideUp, slideDown
   // https://w3bits.com/javascript-slidetoggle/
   var slideDuration = 250;
-  function slideOut(target, done) { // slideUp
+  function slideOut(target) { // slideUp
+    var defer = new Later();
     target.style.transitionProperty = 'height, margin, padding';
     target.style.transitionDuration = slideDuration + 'ms';
     target.style.boxSizing = 'border-box';
@@ -235,11 +243,13 @@ var laterContainer = {};
       target.style.removeProperty('overflow');
       target.style.removeProperty('transition-duration');
       target.style.removeProperty('transition-property');
-      if (isFunction(done)) { done(); }
+      defer.done(null, null);
     }, slideDuration);
+    return defer;
   }
 
-  function slideIn(target, done) { // slideDown
+  function slideIn(target) { // slideDown
+    var defer = new Later();
     target.style.removeProperty('display');
     var display = window.getComputedStyle(target).display;
     if (display === 'none') {
@@ -268,29 +278,23 @@ var laterContainer = {};
       target.style.removeProperty('overflow');
       target.style.removeProperty('transition-duration');
       target.style.removeProperty('transition-property');
-      if (isFunction(done)) { done(); }
+      defer.done(null, null);
     }, slideDuration);
+    return defer;
   }
 
-  function sectionShow(section, done) {
-    var promiseCount = 0;
-    function promiseDone() {
-      if (--promiseCount <= 0) {
-        if (isFunction(done)) {
-          done();
-        }
-      }
-    }
-
-    if (!section) { return promiseDone(); }
+  function sectionShow(section) {
+    if (!section) { return Later.fin('Invalid Section', null);}
+    // Close all
+    var steps = [];
     Object.keys($section).forEach(function (key) {
       if ($section[key] !== section) {
-        promiseCount++;
-        slideOut($section[key], promiseDone);
+        steps.push(slideOut($section[key]));
       }
     });
-    promiseCount++;
-    slideIn(section, promiseDone);
+    // Open the specified
+    steps.push(slideIn(section));
+    return Later.join(steps);
   }
 
   //////////////////////////////////////////////////////
@@ -317,12 +321,14 @@ var laterContainer = {};
   ////////////////////
   // APIs
 
-  // Pull down settings and build the form
-  // Callback(error, numberOfSettings)
-  function reloadSettings(callback) {
-    callback = callback || function () { };
+  /**
+   * Pull down settings and build the form
+   * @returns {Later} (error, numberOfSettings)
+   */
+  function reloadSettings() {
+    var defer = new Later();
     fatalError.clear();
-    ajax('/settings.json', function (err, settings) {
+    ajax('/settings.json').then(function (err, settings) {
       // Clear
       var $panel = document.getElementById('settings-form-body');
       $panel.innerHTML = '';
@@ -330,14 +336,14 @@ var laterContainer = {};
 
       if (err) {
         fatalError('Error building settings config');
-        return callback('Error building settings config', 0);
+        return defer.done('Error building settings config', 0);
       }
       if (!Array.isArray(settings)) {
         fatalError('Invalid settings');
-        return callback('Invalid settings', 0);
+        return defer.done('Invalid settings', 0);
       }
       if (settings.length < 1) {
-        return callback(null, 0); // No settings (but not an error)
+        return defer.done(null, 0); // No settings (but not an error)
       }
 
       // Convert settings to dict
@@ -458,8 +464,9 @@ var laterContainer = {};
         }
       });
       // No errors
-      callback(null, settings.length);
+      defer.done(null, settings.length);
     });
+    return defer;
   }
 
   ////////////////////
@@ -470,27 +477,6 @@ var laterContainer = {};
         e.preventDefault();
       }
       fatalError.clear();
-
-      var apiResponse = [];
-      var promiseCount = 0;
-
-      // We need to wait for both promises
-      function promiseDone() {
-        console.log('promiseDone', promiseCount);
-        if (++promiseCount !== 2) {
-          return;
-        }
-        var error = apiResponse[0];
-        var data = apiResponse[1];
-        if (error) {
-          fatalError('Error updating settings');
-        } else if (data) {
-          fatalError(data);
-        }
-        sectionShow($section.HOME);
-      }
-
-      sectionShow($section.loading, promiseDone);
 
       // Build results
       var results = state.settingValueGetters
@@ -503,16 +489,28 @@ var laterContainer = {};
         }, {});
       console.log(results);
 
-      // Send results
-      ajax({
-        url: '/settings.json',
-        method: 'POST',
-        headers: results,
-        isJSON: false,
-      }, function(err, data) {
-        apiResponse = [err, data];
-        promiseDone();
-      });
+      // Show the loading screen and send results
+      Later
+        .join([
+          sectionShow($section.loading),
+          ajax({
+            url: '/settings.json',
+            method: 'POST',
+            headers: results,
+            isJSON: false,
+          })
+        ])
+        .then(function(results) {
+          var error = results[1][0];
+          var data = results[1][1];
+
+          if (error) {
+            fatalError('Error updating settings');
+          } else if (data) {
+            fatalError(data);
+          }
+          sectionShow($section.HOME);
+        });
       return false; // no submit
     });
   document.getElementById('settings-form-cancel')
@@ -527,12 +525,13 @@ var laterContainer = {};
   $section.loading.style.display = 'block';
 
   // Initial call to see if we can have settings
-  reloadSettings(function initSettingCtrls(error, success) {
-    if (!error && success > 0) {
-      var settingsBtn = document.getElementById('settings-btn');
-      if (settingsBtn) { settingsBtn.style.display = 'block'; }
-    }
-    // Show home page
-    sectionShow($section.HOME);
-  });
+  reloadSettings()
+    .then(function initSettingCtrls(error, success) {
+      if (!error && success > 0) {
+        var settingsBtn = document.getElementById('settings-btn');
+        if (settingsBtn) { settingsBtn.style.display = 'block'; }
+      }
+      // Show home page
+      sectionShow($section.HOME);
+    });
 })();
