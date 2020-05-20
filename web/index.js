@@ -134,10 +134,6 @@ var laterContainer = {};
   }
   fatalError.clear = _fatalErrorClear;
 
-  function isFunction(fn) {
-    return typeof fn === 'function';
-  }
-
   /**
    * Create an AJAX request
    * @param {object|string} config Config object or URL string
@@ -233,6 +229,12 @@ var laterContainer = {};
     target.style.paddingBottom = 0;
     target.style.marginTop = 0;
     target.style.marginBottom = 0;
+
+    var fn = onExit[target.id];
+    if (fn) {
+      fn(target);
+    }
+
     window.setTimeout(function () {
       target.style.display = 'none';
       target.style.removeProperty('height');
@@ -278,6 +280,10 @@ var laterContainer = {};
       target.style.removeProperty('overflow');
       target.style.removeProperty('transition-duration');
       target.style.removeProperty('transition-property');
+      var fn = onEnter[target.id];
+      if (fn) {
+        fn(target);
+      }
       defer.done(null, null);
     }, slideDuration);
     return defer;
@@ -297,6 +303,17 @@ var laterContainer = {};
     return Later.join(steps);
   }
 
+  function rssiClassName(rssi) {
+    if (rssi >= -60) {
+      return 'w0';
+    } else if (rssi >= -67) {
+      return 'w1';
+    } else if (rssi >= -75) {
+      return 'w2';
+    }
+    return 'w3';
+  }
+
   //////////////////////////////////////////////////////
   // MAIN
 
@@ -304,6 +321,7 @@ var laterContainer = {};
   var $section = {
     loading: document.getElementById('loading'),
     wifi: document.getElementById('wifi'),
+    connect: document.getElementById('connect'),
     settings: document.getElementById('settings'),
   };
   $section.HOME = $section.wifi;
@@ -316,6 +334,21 @@ var laterContainer = {};
     checkStatusInterval: null,
     // Stores functions that will return a tuple of key and value
     settingValueGetters: [],
+    refreshApInterval: null,
+  };
+
+  // When a section with a matching ID is entered, the corresponding
+  // function will be called
+  var onEnter = {};
+  onEnter[$section.wifi.id] = function() {
+    startRefreshAP();
+  };
+
+  // When a section with a matching ID is exited, the corresponding
+  // function will be called
+  var onExit = {};
+  onEnter[$section.wifi.id] = function() {
+    stopRefreshAP();
   };
 
   ////////////////////
@@ -359,18 +392,12 @@ var laterContainer = {};
 
         // Add a label first
         var lbl = document.createElement('label');
-        lbl.setAttribute('class', 'h2');
         lbl.setAttribute('for', settingId);
         lbl.innerHTML = setting.label || '';
         $panel.appendChild(lbl);
 
-        // Start the section element
-        var $section = document.createElement('section');
-        $panel.appendChild($section);
-
-        var $container = document.createElement('div');
-        $container.setAttribute('class', 'ape user-setting-container');
-        $section.appendChild($container);
+        var $container = document.createElement('p');
+        $panel.appendChild($container);
 
         // Create based on type
         switch (setting.type) {
@@ -469,6 +496,64 @@ var laterContainer = {};
     return defer;
   }
 
+  function refreshAP() {
+    return ajax('/ap.json')
+      .then(function(err, data) {
+        if (err || !data) {
+          return Later.fin(err || 'No AP data', null);
+        }
+        var $aps = document.getElementById('wifi-aps');
+
+        data
+          .sort(function(a, b) {
+            // Closer to 0 means better signal
+            return b.rssi - a.rssi;
+          });
+
+        data.push({
+          ssid: 'Other...',
+          isManual: true,
+        });
+
+        data.forEach(function(ap) {
+          var $row = document.createElement('div');
+          $row.addEventListener('click', function() {
+            connectToAP(ap);
+          });
+
+          var $apSpan = document.createElement('span');
+          $apSpan.innerText = ap.ssid;
+          $row.appendChild($apSpan);
+
+          if (!ap.isManual) {
+            var $rssi = document.createElement('span');
+            $rssi.setAttribute('class', rssiClassName(ap.rssi) + ' pr');
+            $row.appendChild($rssi);
+
+            if (ap.auth) {
+              var $padlock = document.createElement('span');
+              $padlock.setAttribute('class', 'pw pr');
+              $row.appendChild($padlock);
+            }
+          }
+
+          $aps.appendChild($row);
+        });
+
+        console.log('sorted', data);
+      });
+  }
+  function stopRefreshAP() {
+    if (state.refreshApInterval) {
+      clearInterval(state.refreshApInterval);
+    }
+    state.refreshApInterval = null;
+  }
+  function startRefreshAP() {
+    stopRefreshAP();
+    state.refreshApInterval = setInterval(refreshAP, 2800);
+  }
+
   ////////////////////
   // Event Handlers
   document.getElementById('settings-form')
@@ -518,11 +603,55 @@ var laterContainer = {};
   document.getElementById('settings-btn')
     .addEventListener('click', sectionShow.bind(null, $section.settings));
 
+  // When an AP is clicked in the WiFi connection row
+  function connectToAP(ap) {
+    var $ssid = document.getElementById('connect-ssid');
+    var $pass = document.getElementById('connect-pass');
+    var $passGroup = document.getElementById('connect-pass-group');
+
+    var hidePass = !ap.isManual && !ap.auth;
+
+    // Reset the form
+    $ssid.value = ap.isManual ? '' : ap.ssid;
+    $pass.value = '';
+    $passGroup.style.display = hidePass ? 'none' : 'block';
+
+    if (ap.isManual) {
+      $ssid.removeAttribute('readonly');
+    } else {
+      $ssid.setAttribute('readonly', 'readonly');
+    }
+
+    sectionShow($section.connect)
+      .then(function() {
+        if (hidePass && $ssid.value) {
+          // Trigger a submit if there's no password to enter
+          connectFormSubmit();
+        }
+      });
+  }
+  function connectFormSubmit() {
+    console.log('FORM SUBMIT');
+  }
+  document.getElementById('connect-form')
+    .addEventListener('submit', function(e) {
+      if (e.preventDefault) {
+        e.preventDefault();
+      }
+      connectFormSubmit();
+      return false; // no submit
+    });
+  document.getElementById('connect-form-cancel')
+    .addEventListener('click', sectionShow.bind(null, $section.HOME));
+
+
+
   ////////////////////
   // Main
 
   // First show the loading section
   $section.loading.style.display = 'block';
+  refreshAP();
 
   // Initial call to see if we can have settings
   reloadSettings()

@@ -17,6 +17,14 @@
   }
 }
 
+// util
+.pr { // pull-right
+  float: right;
+}
+.fsb { // font-size base
+  font-size: $font-size-base;
+}
+
 // Components
 body {
   background: $grey;
@@ -37,3 +45,45 @@ main {
   margin-top: 0;
   display: none;
 }
+
+.head-btn {
+  display: block;
+  position: absolute;
+  top: $md-pad;
+  right: $md-pad;
+
+  @media screen and (max-width: $small-breakpoint) {
+    clear: both;
+    width: 100%;
+    position: static;
+  }
+}
+
+#wifi-aps > div {
+  clear: both;
+  padding: $sm-pad $xs-pad;
+  border-bottom: $border;
+
+  &:hover {
+    background: $grey;
+    cursor: pointer;
+  }
+  &:focus, &:active {
+    background: darken($grey, 10%);
+    cursor: pointer;
+  }
+}
+
+
+// Icons
+.w0, .w1, .w2, .w3, .pw, .ph {
+  height: 24px;
+  width: 24px;
+  margin-left: 20px;
+}
+
+.w0 { background: url(inline-image('./img/wifi0.png')) no-repeat center top; }
+.w1 { background: url(inline-image('./img/wifi1.png')) no-repeat center top; }
+.w2 { background: url(inline-image('./img/wifi2.png')) no-repeat center top; }
+.w3 { background: url(inline-image('./img/wifi3.png')) no-repeat center top; }
+.pw { background: url(inline-image('./img/lock.png'))  no-repeat center top; }

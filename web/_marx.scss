@@ -98,6 +98,10 @@ hr {
   box-sizing: content-box;
   height: 0;
   overflow: visible;
+
+  &.thin {
+    margin: $xs-pad 0;
+  }
 }
 
 img {
@@ -107,8 +111,8 @@ img {
 }
 
 @media screen and (max-width: $small-breakpoint) {
-  article,
-  section,
+  //article,
+  //section,
   aside {
     clear: both;
     display: block;
@@ -478,6 +482,11 @@ button {
   font-size: 1rem;
   line-height: 1.5;
   transition: color .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+
+  &.block {
+    display: block;
+    width: 100%;
+  }
 
   &.outline { // Add
     background-color: transparent;

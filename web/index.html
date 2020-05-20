@@ -15,23 +15,46 @@
     <div id="error-bar"></div>
 
     <section id="loading">
-      <h1>Loading...</h1>
+      <header>
+        <h1>Loading...</h1>
+      </header>
     </section>
 
     <section id="wifi">
       <header>
-        <h1>
-          WiFi
-          <button id="settings-btn" style="display: none; float: right;">Settings</button>
-        </h1>
+        <h2>WiFi</h2>
+        <button id="settings-btn" class="head-btn"
+          style="display: none;">Settings</button>
       </header>
+      <h3>Select Network</h3>
+      <article id="wifi-aps"></article>
+    </section>
+
+    <section id="connect">
+      <header>
+        <h2>Connect to</h2>
+      </header>
+      <form id="connect-form">
+        <p>
+          <label for="connect-ssid">SSID</label>
+          <input type="text" id="connect-ssid" name="connect-ssid">
+        </div>
+        <p id="connect-pass-group">
+          <label for="connect-pass">Password</label>
+          <input type="password" id="connect-pass" name="connect-pass">
+        </div>
+        <p class="button-group">
+          <button type="button" class="outline" id="connect-form-cancel">Cancel</button>
+          <button type="submit">Save</button>
+        </div>
+      </form>
     </section>
 
     <section id="settings">
       <header><h1>Settings</h1></header>
       <form id="settings-form">
-        <div id="settings-form-body"></div>
-        <div class="button-group">
+        <p id="settings-form-body"></div>
+        <p class="button-group">
           <button type="button" class="outline" id="settings-form-cancel">Cancel</button>
           <button type="submit">Save</button>
         </div>
