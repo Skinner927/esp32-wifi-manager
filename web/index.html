@@ -10,23 +10,22 @@
   <link rel="stylesheet" href="index.css" inline>
 </head>
 
-<body>
+<body class="loading">
+  <div id="loading-overlay">
+    <div>
+      <h3>Loading...</h3>
+      <div class="lds-ring"><div></div><div></div><div></div><div></div></div>
+    </div>
+  </div>
+  <div id="wrap">
   <main>
     <div id="error-bar"></div>
-
-    <section id="loading">
-      <header>
-        <h1>Loading...</h1>
-      </header>
-    </section>
-
     <section id="wifi">
       <header>
-        <h2>WiFi</h2>
+        <h2>Select Network</h2>
         <button id="settings-btn" class="head-btn"
           style="display: none;">Settings</button>
       </header>
-      <h3>Select Network</h3>
       <article id="wifi-aps"></article>
     </section>
 
@@ -37,31 +36,39 @@
       <form id="connect-form">
         <p>
           <label for="connect-ssid">SSID</label>
-          <input type="text" id="connect-ssid" name="connect-ssid">
-        </div>
+          <input type="text" id="connect-ssid" name="connect-ssid" autocomplete="off">
+        </p>
         <p id="connect-pass-group">
           <label for="connect-pass">Password</label>
           <input type="password" id="connect-pass" name="connect-pass">
-        </div>
+        </p>
         <p class="button-group">
           <button type="button" class="outline" id="connect-form-cancel">Cancel</button>
           <button type="submit">Save</button>
-        </div>
+        </p>
       </form>
+    </section>
+
+    <section id="connect-error">
+      <header><h2>Connection Error</h2></header>
+      <p class="error-box">Error connecting to access point</p>
+      <p><button type="button" class="block" data-goto="connect">Retry</button></p>
+      <p><button type="button" class="block outline" data-goto="HOME">Cancel</button></p>
     </section>
 
     <section id="settings">
       <header><h1>Settings</h1></header>
       <form id="settings-form">
-        <p id="settings-form-body"></div>
+        <p id="settings-form-body"></p>
         <p class="button-group">
           <button type="button" class="outline" id="settings-form-cancel">Cancel</button>
           <button type="submit">Save</button>
-        </div>
+        </p>
       </form>
     </section>
 
   </main>
+  </div> <!-- /wrap -->
   <script src="index.js" inline></script>
 </body>
 </html>

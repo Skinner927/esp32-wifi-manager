@@ -26,36 +26,82 @@
 }
 
 // Components
-body {
+html, body {
   background: $grey;
+  height: 100%;
 }
+
+#wrap { // Need this for loading-overlay
+  // https://luxiyalu.com/how-to-prevent-body-from-scrolling/
+  // https://luxiyalu.com/playground/overlay/
+  height: 100%;
+  overflow: auto;
+}
+
 main {
+  min-height: 100vh;
   background: $white;
 
   & > section {
     display: none;
   }
 }
+header {
+  position: relative;
+}
 
-#error-bar {
+#error-bar, .error-box {
   color: $white;
   background: $red;
   border: 1px solid darken($red, 20%);
   padding: $md-pad;
+}
+#error-bar {
   margin-top: 0;
   display: none;
+}
+.error-box {
+  margin-bottom: $md-pad;
+}
+
+#loading-overlay { display: none; }
+body.loading {
+  #loading-overlay {
+    display: block;
+    background: rgba(10, 10, 10, 0.5);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+
+    & > div {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translateY(-50%) translateX(-50%);
+      text-align: center;
+
+      background: $grey;
+      border-radius: 5px;
+      padding: $md-pad;
+    }
+  }
 }
 
 .head-btn {
   display: block;
   position: absolute;
-  top: $md-pad;
-  right: $md-pad;
+  top: $lg-pad; // same as h1 & h2
+  right: 0;
 
   @media screen and (max-width: $small-breakpoint) {
     clear: both;
     width: 100%;
     position: static;
+    top: auto;
+    right: auto;
   }
 }
 
@@ -63,6 +109,9 @@ main {
   clear: both;
   padding: $sm-pad $xs-pad;
   border-bottom: $border;
+  &:first-child {
+    border-top: $border;
+  }
 
   &:hover {
     background: $grey;
@@ -87,3 +136,40 @@ main {
 .w2 { background: url(inline-image('./img/wifi2.png')) no-repeat center top; }
 .w3 { background: url(inline-image('./img/wifi3.png')) no-repeat center top; }
 .pw { background: url(inline-image('./img/lock.png'))  no-repeat center top; }
+
+// Spinner in loading-overlay
+.lds-ring {
+  display: inline-block;
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+.lds-ring div {
+  box-sizing: border-box;
+  display: block;
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  margin: 8px;
+  border: 8px solid $accent;
+  border-radius: 50%;
+  animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  border-color: $accent transparent transparent transparent;
+}
+.lds-ring div:nth-child(1) {
+  animation-delay: -0.45s;
+}
+.lds-ring div:nth-child(2) {
+  animation-delay: -0.3s;
+}
+.lds-ring div:nth-child(3) {
+  animation-delay: -0.15s;
+}
+@keyframes lds-ring {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

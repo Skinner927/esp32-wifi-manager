@@ -174,7 +174,10 @@ var laterContainer = {};
     if (config.headers) {
       Object.keys(config.headers).forEach(function (key) {
         // Not sure if I need encodeURI but let's be safe
-        xhr.setRequestHeader(key, encodeURIComponent(config.headers[key]));
+        xhr.setRequestHeader(
+          key.toLowerCase(),
+          encodeURIComponent(config.headers[key])
+        );
       });
     }
 
@@ -275,6 +278,8 @@ var laterContainer = {};
     target.style.removeProperty('padding-bottom');
     target.style.removeProperty('margin-top');
     target.style.removeProperty('margin-bottom');
+    // Scroll to top of wrapper in case the page we're leaving was bigger
+    document.getElementById('wrap').scrollTo(0, 0);
     window.setTimeout(function () {
       target.style.removeProperty('height');
       target.style.removeProperty('overflow');
@@ -319,15 +324,39 @@ var laterContainer = {};
 
   // Root views
   var $section = {
-    loading: document.getElementById('loading'),
     wifi: document.getElementById('wifi'),
     connect: document.getElementById('connect'),
+    connectError: document.getElementById('connect-error'),
     settings: document.getElementById('settings'),
   };
   $section.HOME = $section.wifi;
 
+  // When a section with a matching ID is entered, the corresponding
+  // function will be called
+  var onEnter = {};
+  onEnter[$section.wifi.id] = function onEnterWiFi() {
+    startRefreshAP();
+  };
+  onEnter[$section.settings.id] = function onEnterSettings() {
+    // Refresh settings on enter
+    state.loadCount++;
+    reloadSettings()
+      .then(function() {
+        state.loadCount--;
+      });
+  };
+
+  // When a section with a matching ID is exited, the corresponding
+  // function will be called
+  var onExit = {};
+  onExit[$section.wifi.id] = function onExitWiFi() {
+    stopRefreshAP();
+  };
+
   // Store all app state here instead of random globals
   var state = {
+    loadCount: 0, // Will be clobbered by defineProperty below
+    _loadCount: 0, // Actual storage
     apList: [],
     selectedSSID: '',
     refreshAPInterval: null,
@@ -337,19 +366,22 @@ var laterContainer = {};
     refreshApInterval: null,
   };
 
-  // When a section with a matching ID is entered, the corresponding
-  // function will be called
-  var onEnter = {};
-  onEnter[$section.wifi.id] = function() {
-    startRefreshAP();
-  };
-
-  // When a section with a matching ID is exited, the corresponding
-  // function will be called
-  var onExit = {};
-  onEnter[$section.wifi.id] = function() {
-    stopRefreshAP();
-  };
+  // Magic loadCount toggles loader
+  Object.defineProperty(state, 'loadCount', {
+    configurable: false,
+    enumerable: true,
+    get: function() {
+      return state._loadCount;
+    },
+    set: function(val) {
+      if (val > 0) {
+        document.body.classList.add('loading');
+      } else {
+        document.body.classList.remove('loading');
+      }
+      state._loadCount = Math.max(0, val);
+    },
+  });
 
   ////////////////////
   // APIs
@@ -361,7 +393,7 @@ var laterContainer = {};
   function reloadSettings() {
     var defer = new Later();
     fatalError.clear();
-    ajax('/settings.json').then(function (err, settings) {
+    ajax('/settings').then(function (err, settings) {
       // Clear
       var $panel = document.getElementById('settings-form-body');
       $panel.innerHTML = '';
@@ -404,7 +436,6 @@ var laterContainer = {};
           case 'select':
             var drop = document.createElement('select');
             $container.appendChild(drop);
-            drop.value = setting.value;
             drop.id = settingId;
             drop.name = setting.key;
 
@@ -420,6 +451,8 @@ var laterContainer = {};
             state.settingValueGetters.push(function getSelectVal() {
               return [setting.key, drop.value || null];
             });
+            // Set initial value once options exist
+            drop.value = setting.value;
             break;
           case 'radio':
           case 'checkbox':
@@ -427,6 +460,7 @@ var laterContainer = {};
             box.classList.add('user-setting-radio');
             $container.appendChild(box);
 
+            var selectedOptions = (setting.value || '').split('\t');
             var options = setting.options.split('\n').map(function (pair, i) {
               var parts = pair.split('\t');
               var div = document.createElement('div');
@@ -438,6 +472,7 @@ var laterContainer = {};
               radio.id = settingId + '-' + i;
               radio.name = setting.key;
               radio.value = parts[0];
+              radio.checked = selectedOptions.indexOf(radio.value) >= 0;
               div.appendChild(radio);
 
               // Space
@@ -497,12 +532,13 @@ var laterContainer = {};
   }
 
   function refreshAP() {
-    return ajax('/ap.json')
+    return ajax('/ap')
       .then(function(err, data) {
         if (err || !data) {
           return Later.fin(err || 'No AP data', null);
         }
         var $aps = document.getElementById('wifi-aps');
+        $aps.innerHTML = '';
 
         data
           .sort(function(a, b) {
@@ -539,8 +575,7 @@ var laterContainer = {};
 
           $aps.appendChild($row);
         });
-
-        console.log('sorted', data);
+        return Later.fin(null, null);
       });
   }
   function stopRefreshAP() {
@@ -551,7 +586,9 @@ var laterContainer = {};
   }
   function startRefreshAP() {
     stopRefreshAP();
+    var p = refreshAP(); // Shoot one off right now
     state.refreshApInterval = setInterval(refreshAP, 2800);
+    return p;
   }
 
   ////////////////////
@@ -579,7 +616,7 @@ var laterContainer = {};
         .join([
           sectionShow($section.loading),
           ajax({
-            url: '/settings.json',
+            url: '/settings',
             method: 'POST',
             headers: results,
             isJSON: false,
@@ -602,6 +639,22 @@ var laterContainer = {};
     .addEventListener('click', sectionShow.bind(null, $section.HOME));
   document.getElementById('settings-btn')
     .addEventListener('click', sectionShow.bind(null, $section.settings));
+  // Hook up all our data-goto attributes
+  Array.prototype.forEach.call(
+    document.querySelectorAll('[data-goto]'),
+    function(node) {
+      var sectionName = node.getAttribute('data-goto');
+      var section = $section[sectionName];
+      if (!section) {
+        throw new Error('No section named ' + sectionName);
+      }
+      node.addEventListener('click', sectionShow.bind(null, section));
+    });
+  // Clear error-bar on click
+  document.getElementById('error-bar')
+    .addEventListener('click', function() {
+      fatalError.clear();
+    });
 
   // When an AP is clicked in the WiFi connection row
   function connectToAP(ap) {
@@ -631,7 +684,29 @@ var laterContainer = {};
       });
   }
   function connectFormSubmit() {
-    console.log('FORM SUBMIT');
+    state.loadCount++;
+    stopRefreshAP();
+    var ssid = document.getElementById('connect-ssid').value;
+    var pass = document.getElementById('connect-pass').value;
+
+    ajax({
+      url: '/connect',
+      method: 'POST',
+      isJSON: false,
+      headers: {
+        'x-custom-ssid': ssid,
+        'x-custom-pwd': pass,
+      },
+    })
+      .then(function(err, data) {
+        state.loadCount--;
+        startRefreshAP();
+        if (!err && !data) {
+          // No errors
+          return sectionShow($section.HOME);
+        }
+        return sectionShow($section.connectError);
+      });
   }
   document.getElementById('connect-form')
     .addEventListener('submit', function(e) {
@@ -648,14 +723,13 @@ var laterContainer = {};
 
   ////////////////////
   // Main
-
-  // First show the loading section
-  $section.loading.style.display = 'block';
+  state.loadCount++;
   refreshAP();
 
   // Initial call to see if we can have settings
   reloadSettings()
     .then(function initSettingCtrls(error, success) {
+      state.loadCount--;
       if (!error && success > 0) {
         var settingsBtn = document.getElementById('settings-btn');
         if (settingsBtn) { settingsBtn.style.display = 'block'; }
